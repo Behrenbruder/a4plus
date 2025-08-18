@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PV Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <style>
+    html,body,#map { height:100%; margin:0 }
+    .leaflet-container { background:#0b1220; }
+    .leaflet-control-attribution { font-size:11px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script>
+    // Karte: Start auf Deutschland
+    const map = L.map('map', { zoomControl: true }).setView([51.1657, 10.4515], 6);
+
+    // --- Basiskarte: Esri World Imagery (Satellit) ---
+    const esriSat = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 20, attribution: 'Tiles &copy; Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community' }
+    ).addTo(map);
+
+    // Optional: dünne Labels obendrauf (Esri Reference)
+    const esriRef = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 20, attribution: '' }
+    ).addTo(map);
+
+    // Zeichnen
+    const drawnItems = new L.FeatureGroup().addTo(map);
+    const drawControl = new L.Control.Draw({
+      draw: {
+        polygon: { allowIntersection: false, showArea: true, repeatMode: true },
+        rectangle: false, circle: false, marker: false, circlemarker: false, polyline: false
+      },
+      edit: { featureGroup: drawnItems, edit: true, remove: true }
+    });
+    map.addControl(drawControl);
+
+    function planarAreaSqm(latlngs){
+      const R = 6371000;
+      const pts = latlngs.map(ll => {
+        const x = R * ll.lng * Math.PI/180 * Math.cos((ll.lat*Math.PI)/180);
+        const y = R * ll.lat * Math.PI/180;
+        return [x,y];
+      });
+      let area = 0;
+      for (let i=0;i<pts.length;i++){
+        const [x1,y1] = pts[i];
+        const [x2,y2] = pts[(i+1)%pts.length];
+        area += (x1*y2 - x2*y1);
+      }
+      return Math.abs(area/2);
+    }
+
+    function longestEdgeAzimuth(latlngs){
+      let maxD=-1, best=null;
+      for (let i=0;i<latlngs.length;i++){
+        const a=latlngs[i], b=latlngs[(i+1)%latlngs.length];
+        const d = map.distance(a,b);
+        if (d>maxD){ maxD=d; best=[a,b]; }
+      }
+      if(!best) return 0;
+      const toRad=x=>x*Math.PI/180, toDeg=r=>r*180/Math.PI;
+      const φ1=toRad(best[0].lat), φ2=toRad(best[1].lat);
+      const λ1=toRad(best[0].lng), λ2=toRad(best[1].lng);
+      const y=Math.sin(λ2-λ1)*Math.cos(φ2);
+      const x=Math.cos(φ1)*Math.sin(φ2)-Math.sin(φ1)*Math.cos(φ2)*Math.cos(λ2-λ1);
+      let θ=Math.atan2(y,x); // 0=N
+      let bearing=(toDeg(θ)+360)%360; // 0..360
+      let pvAz=bearing-180; // Süd=0, Ost=+90, West=-90
+      if(pvAz>180) pvAz-=360; if(pvAz<=-180) pvAz+=360;
+      return Math.round(pvAz);
+    }
+
+    function send(layer){
+      const latlngs = layer.getLatLngs()[0];
+      const coords = latlngs.map(ll => ({ lat: ll.lat, lng: ll.lng }));
+      const area_m2 = Math.round(planarAreaSqm(latlngs));
+      const azimuth = longestEdgeAzimuth(latlngs);
+      parent.postMessage({ type:'POLYGON_DONE', payload:{ coords, area_m2, azimuth } }, '*');
+    }
+
+    map.on(L.Draw.Event.CREATED, e => { drawnItems.addLayer(e.layer); send(e.layer); });
+    map.on('draw:edited', e => e.layers.eachLayer(layer => send(layer)));
+
+    // Befehle vom Parent
+    window.addEventListener('message', ev=>{
+      const m = ev.data || {};
+      if(m.type==='CENTER' && m.payload){
+        const { lat, lon, zoom=19 } = m.payload;
+        map.setView([lat,lon], zoom);
+      }
+      if(m.type==='CLEAR'){ drawnItems.clearLayers(); }
+    });
+  </script>
+</body>
+</html>

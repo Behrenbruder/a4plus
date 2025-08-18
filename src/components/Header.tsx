@@ -1,0 +1,83 @@
+import Link from "next/link";
+
+export function Header() {
+  return (
+    <header className="border-b border-gray-100 bg-white">
+      <div className="container flex items-center justify-between py-4">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2">
+          <span
+            className="inline-flex items-center justify-center rounded-2xl px-3 py-2 text-white"
+            style={{ background: "linear-gradient(135deg,#10b981,#059669)" }}
+          >
+            <span className="text-xl font-bold tracking-tight">a4+</span>
+          </span>
+          <span className="hidden sm:block text-m text-gray-600">
+            <b>Ihr Effizienzstandard</b>
+          </span>
+        </Link>
+
+        {/* Navigation */}
+        <nav className="flex gap-6 text-sm font-medium text-gray-700">
+          {/* Produkte mit Auto-Flip + max Breite */}
+          <div className="relative group">
+            <Link
+              href="/produkte/fenster"
+              className="hover:text-emerald-600 inline-flex items-center gap-1"
+              aria-haspopup="true"
+            >
+              Produkte
+              <svg className="h-4 w-4 transition group-hover:rotate-180" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5.23 7.21a.75.75 0 011.06.02L10 10.17l3.71-2.94a.75.75 0 111.04 1.08l-4.24 3.36a.75.75 0 01-.94 0L5.21 8.31a.75.75 0 01.02-1.1z" />
+              </svg>
+            </Link>
+
+            {/* Wrapper: standard linksbündig, ab md nach rechts bündig (verhindert Überlauf) */}
+            <div
+              className="absolute top-full left-full"
+              style={{insetInlineEnd: "16px"}}
+              >
+
+              <div
+                className="invisible opacity-0 pointer-events-none
+                           group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto
+                           focus-within:visible focus-within:opacity-100 focus-within:pointer-events-auto
+                           mt-2 w-[720px] max-w-[92vw] rounded-2xl border border-gray-100 bg-white shadow-xl transition"
+                role="menu"
+                aria-label="Produktkategorien"
+              >
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-4">
+                  <DropdownLink href="/produkte/fenster"      label="Fenster"                   desc="Kömmerling 88 / 76 AD / 76 MD, lackierte Profile" />
+                  <DropdownLink href="/produkte/tueren"       label="Türen"                     desc="Haustüren, Nebeneingang, Schiebe-/Hebeschiebe" />
+                  <DropdownLink href="/produkte/daemmung"     label="Dämmung"                   desc="Fassade, Dach, Kellerdecke" />
+                  <DropdownLink href="/produkte/pv"           label="PV‑Anlagen"                desc="Planung, Montage, Förderung" />
+                  <DropdownLink href="/produkte/batterie"     label="Batteriespeicher"          desc="Kapazitäten, Kompatibilität" />
+                  <DropdownLink href="/produkte/waermepumpen" label="Wärmepumpen"               desc="Luft/Wasser, Hybrid" />
+                  <DropdownLink href="/produkte/rollaeden"    label="Rollläden & Blinos‑Rollos" desc="Nachrüstung, Hitzeschutz" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Link href="/pv-rechner" className="hover:text-emerald-600">PV-Rechner</Link>
+          <Link href="/faq-foerderungen" className="hover:text-emerald-600">FAQ Förderungen</Link>
+          <Link href="/ueber-uns" className="hover:text-emerald-600">Über uns</Link>
+          <Link href="/kontakt" className="hover:text-emerald-600">Kontakt</Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+function DropdownLink({ href, label, desc }: { href: string; label: string; desc: string }) {
+  return (
+    <Link
+      href={href}
+      className="group/item flex flex-col gap-1 rounded-xl p-3 hover:bg-gray-50 transition"
+      role="menuitem"
+    >
+      <span className="font-medium text-gray-900 group-hover/item:text-emerald-700">{label}</span>
+      <span className="text-xs text-gray-600">{desc}</span>
+    </Link>
+  );
+}
