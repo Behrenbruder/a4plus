@@ -49,7 +49,9 @@ function ProductRow({
           {title}
         </h3>
 
-        <div className="prose prose-gray max-w-none text-gray-700">{children}</div>
+        <div className="prose prose-gray max-w-none text-gray-700">
+          {children}
+        </div>
 
         {pdf && (
           <a href={pdf} target="_blank" rel="noreferrer">
@@ -68,11 +70,11 @@ export default function FensterPage() {
       <header className="max-w-3xl">
         <h2 className="h2">Fenster</h2>
         <p className="muted mt-2">
-          Wir setzen bei Kunststoff‑Fenstern auf <strong>Kömmerling</strong>. Die
+          Wir setzen bei Kunststoff-Fenstern auf <strong>Kömmerling</strong>. Die
           Systeme 88, 76&nbsp;AD und 76&nbsp;MD verbinden starke Wärmedämmung mit hoher
           Stabilität und langlebiger Dichtungstechnik. Kömmerling produziert seit Jahren
-          ressourcenschonend (u. a. Recycleteinsatz im Profilkern) und bietet ein großes
-          Spektrum an Design‑Optionen.
+          ressourcenschonend (u. a. Recycleteinsatz im Profilkern) und bietet ein großes
+          Spektrum an Design-Optionen.
         </p>
       </header>
 
@@ -86,8 +88,8 @@ export default function FensterPage() {
         >
           <ul className="list-disc pl-5 space-y-1">
             <li>88&nbsp;mm Bautiefe – sehr gute Statik und Dichtheit</li>
-            <li>Sehr niedrige Uw‑Werte (je nach Verglasung bis Passivhaus‑Niveau)</li>
-            <li>6‑Kammer‑Profil, Mehrfachdichtung, große Glasdicken möglich</li>
+            <li>Sehr niedrige Uw-Werte (je nach Verglasung bis Passivhaus-Niveau)</li>
+            <li>6-Kammer-Profil, Mehrfachdichtung, große Glasdicken möglich</li>
             <li>Ideal für Neubau mit hohen Effizienzanforderungen</li>
           </ul>
         </ProductRow>
@@ -101,9 +103,9 @@ export default function FensterPage() {
         >
           <ul className="list-disc pl-5 space-y-1">
             <li>76&nbsp;mm Bautiefe mit Anschlagdichtung (AD)</li>
-            <li>Sehr gutes Preis‑Leistungs‑Verhältnis für Neubau & Sanierung</li>
-            <li>Optimierte Wärme‑ und Schalldämmung bei schlanker Optik</li>
-            <li>Großes Zubehör‑ und Farbprogramm</li>
+            <li>Sehr gutes Preis-Leistungs-Verhältnis für Neubau & Sanierung</li>
+            <li>Optimierte Wärme- und Schalldämmung bei schlanker Optik</li>
+            <li>Großes Zubehör- und Farbprogramm</li>
           </ul>
         </ProductRow>
 
@@ -117,9 +119,9 @@ export default function FensterPage() {
             <li>
               76&nbsp;mm Bautiefe mit <strong>Mitteldichtung (MD)</strong> – Plus an Dämmung
             </li>
-            <li>Sehr gute Uw‑Werte bei hoher Dichtheit, auch akustisch stark</li>
+            <li>Sehr gute Uw-Werte bei hoher Dichtheit, auch akustisch stark</li>
             <li>Robuste Lösung für anspruchsvolle Modernisierungen</li>
-            <li>Umfangreiche Beschlag‑ und Sicherheitsoptionen</li>
+            <li>Umfangreiche Beschlag- und Sicherheitsoptionen</li>
           </ul>
         </ProductRow>
 
@@ -131,25 +133,25 @@ export default function FensterPage() {
           reverse
         >
           <ul className="list-disc pl-5 space-y-1">
-            <li>Geschosshohe Elemente bis 2,60 m</li>
+            <li>Geschosshohe Elemente bis 2,60 m</li>
             <li>Uf = 1,4 W/(m²K), Verglasung Ug = 0,5 W/m²K</li>
             <li>Barrierefreie, hochdämmende Bodenschwelle</li>
             <li>Unsichtbare Befestigung dank tiefer Montagekanäle</li>
-            <li>Bleifreie Ca/Zn‑Stabilisatoren, optional Alu‑Schalen</li>
+            <li>Bleifreie Ca/Zn-Stabilisatoren, optional Alu-Schalen</li>
           </ul>
         </ProductRow>
 
         {/* Lackierte Fenster */}
-        <ProductRow title="Lackierte Fenster (RAL‑Farben)" img="/images/fenster/farbenfenster.jpg">
+        <ProductRow title="Lackierte Fenster (RAL-Farben)" img="/images/fenster/farbenfenster.jpg">
           <p className="mb-3">
-            PVC‑Profile in Original‑RAL‑Farben – für ein durchgängiges Farbkonzept am Gebäude.
+            PVC-Profile in Original-RAL-Farben – für ein durchgängiges Farbkonzept am Gebäude.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="rounded-xl border border-gray-100 p-4">
               <h4 className="font-medium">Vorteile</h4>
               <ul className="mt-2 list-disc pl-5 space-y-1 text-[15px]">
-                <li>Perfekte Farbanpassung (RAL‑Palette)</li>
-                <li>Witterungs‑, chemisch und mechanisch beständig</li>
+                <li>Perfekte Farbanpassung (RAL-Palette)</li>
+                <li>Witterungs-, chemisch und mechanisch beständig</li>
                 <li>Saubere, hochwertige Oberfläche</li>
               </ul>
             </div>
