@@ -129,7 +129,7 @@ function hourlyEVProfile(annualKWh: number, mode: EVMode, wallboxKW?: number): n
 
 /* -------------------------- Hilfsfunktionen -------------------------- */
 
-function normalize8760(arr: any): number[] {
+function normalize8760(arr: unknown): number[] {
   if (!Array.isArray(arr) || arr.length < 8760) return [];
   const nums = arr.map((x) => (Number.isFinite(Number(x)) ? Number(x) : 0));
   const sum = nums.reduce((a, b) => a + b, 0);
@@ -325,12 +325,13 @@ export default function Page() {
         const h0 = hourlyLoadProfileFromHousehold('3_4p', undefined);
         const n = normalize8760(h0);
         if (!cancelled) setHouseholdBase8760(n);
-      } catch (e: any) {
+      } catch (e: unknown) {
         // harter Fallback
         const h0 = hourlyLoadProfileFromHousehold('3_4p', undefined);
         if (!cancelled) {
           setHouseholdBase8760(normalize8760(h0));
-          setProfileLoadError(e?.message || 'Profil konnte nicht geladen werden.');
+          const error = e instanceof Error ? e : new Error('Unknown error');
+          setProfileLoadError(error.message || 'Profil konnte nicht geladen werden.');
         }
       }
     })();
@@ -365,7 +366,7 @@ export default function Page() {
   /* ---------------------- kWp je Fläche (HORIZ -> TILT) ---------------------- */
   const perFaceKWp: number[] = useMemo(() => {
     return faces.map((f) => {
-      const key = String((f as any).id ?? '');
+      const key = String((f as { id?: string | number }).id ?? '');
       const override = kwpOverrideByFace[key];
       if (Number.isFinite(override)) return Number(override);
 
@@ -443,9 +444,10 @@ export default function Page() {
           );
           setPvgisSource('PVGIS v5.2 (SARAH2)');
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!abort) {
-          setPvgisError(e?.message || 'Unbekannter Fehler bei /api/pvgis');
+          const error = e instanceof Error ? e : new Error('Unknown error');
+          setPvgisError(error.message || 'Unbekannter Fehler bei /api/pvgis');
           setPerFaceYield(new Array(faces.length).fill(1000));
           setPerFaceGTI(new Array(faces.length).fill(0));
           setPvgisWeightedGTI(null);
@@ -519,7 +521,7 @@ export default function Page() {
 
   const eigenverbrauchKWh = Math.max(
     0,
-    (dispatch as any).selfConsumptionKWh ?? (annualPV - dispatch.feedInKWh),
+    (dispatch as { selfConsumptionKWh?: number }).selfConsumptionKWh ?? (annualPV - dispatch.feedInKWh),
   );
   const eigenverbrauchQuote = annualPV > 0 ? eigenverbrauchKWh / annualPV : 0;
   const autarkie = annualConsumption > 0 ? 1 - dispatch.gridImportKWh / annualConsumption : 0;
@@ -532,8 +534,8 @@ export default function Page() {
 
   const co2SavingsTons = (annualPV * 0.4) / 1000;
 
-  const batteryChargeKWh = Number((dispatch as any).batteryChargeKWh) || 0;
-  const batteryDischargeKWh = Number((dispatch as any).batteryDischargeKWh) || 0;
+  const batteryChargeKWh = Number((dispatch as { batteryChargeKWh?: number }).batteryChargeKWh) || 0;
+  const batteryDischargeKWh = Number((dispatch as { batteryDischargeKWh?: number }).batteryDischargeKWh) || 0;
   const batteryUsage =
     batteryKWh > 0 && batteryChargeKWh > 0
       ? (batteryDischargeKWh / batteryChargeKWh) * 100
@@ -687,7 +689,7 @@ export default function Page() {
               <select
                 className="border rounded px-1 py-0.5"
                 value={profileSource}
-                onChange={(e) => setProfileSource(e.target.value as any)}
+                onChange={(e) => setProfileSource(e.target.value as 'BDEW' | 'OPSD' | 'SYNTH')}
                 title="Haushaltslast-Quelle wählen"
               >
                 <option value="BDEW">BDEW H25 (empfohlen)</option>
@@ -853,16 +855,16 @@ export default function Page() {
             onNext={({ perFace = [], total }) => {
               setKwpOverrideByFace(
                 Object.fromEntries(
-                  perFace.map((r: any) => [String(r.id), Number(r.kWp) || 0] as const),
+                  perFace.map((r: { id?: string | number; kWp?: number }) => [String(r.id), Number(r.kWp) || 0] as const),
                 ),
               );
               setPackTotal({
                 modules:
                   Number(total?.modules) ||
-                  perFace.reduce((a: number, b: any) => a + (b.modules || 0), 0),
+                  perFace.reduce((a: number, b: { modules?: number }) => a + (b.modules || 0), 0),
                 kWp:
                   Number(total?.kWp) ||
-                  perFace.reduce((a: number, b: any) => a + (b.kWp || 0), 0),
+                  perFace.reduce((a: number, b: { kWp?: number }) => a + (b.kWp || 0), 0),
               });
             }}
           />
@@ -883,7 +885,7 @@ export default function Page() {
                 <select
                   className="border rounded px-2 py-1"
                   value={profileSource}
-                  onChange={(e) => setProfileSource(e.target.value as any)}
+                  onChange={(e) => setProfileSource(e.target.value as 'BDEW' | 'OPSD' | 'SYNTH')}
                 >
                   <option value="BDEW">BDEW H25 (empfohlen)</option>
                   <option value="OPSD">OPSD</option>
@@ -936,7 +938,7 @@ export default function Page() {
             eigenverbrauch={eigenverbrauchQuote}
           />
           <div className="mt-6">
-            <Report data={debugData as any} />
+            <Report data={debugData} />
           </div>
         </Section>
       </div>

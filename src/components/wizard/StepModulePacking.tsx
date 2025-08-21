@@ -19,15 +19,17 @@ const cos = (deg: number) => Math.cos(deg * RAD);
 
 /** Heuristik: Ist es ein Preset? (keine Polygonpunkte & spezielle ID) */
 function isPresetFace(f: RoofFace) {
-  const isPoly = Array.isArray((f as any).polygon) && (f as any).polygon.length >= 3;
+  const faceWithPolygon = f as RoofFace & { polygon?: unknown[] };
+  const isPoly = Array.isArray(faceWithPolygon.polygon) && faceWithPolygon.polygon.length >= 3;
   return !isPoly && typeof f.id === 'string' && f.id.startsWith('preset-');
 }
 
 /** Nutzbare Fläche ermitteln */
 function usableAreaM2(face: RoofFace): number {
   const tilt = face.tiltDeg || 0;
+  const faceWithBuildFactor = face as RoofFace & { buildFactor?: number };
   const buildFactor =
-    (face as any).buildFactor !== undefined ? (face as any).buildFactor : 0.7;
+    faceWithBuildFactor.buildFactor !== undefined ? faceWithBuildFactor.buildFactor : 0.7;
 
   if (isPresetFace(face)) {
     const base = face.areaHorizM2 || 0;
@@ -57,7 +59,7 @@ type Props = {
   }) => void;
 };
 
-export function StepModulePacking({ faces, roofType, onNext }: Props) {
+export function StepModulePacking({ faces, onNext }: Props) {
   const [wp, setWp] = useState<number>(430);
   const [eff, setEff] = useState<number>(21.0);
 

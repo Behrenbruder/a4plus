@@ -63,7 +63,6 @@ export async function POST(req: Request) {
 
     // ------- Solar-Modelle (identisch wie zuvor, minimal gekürzt) -------
     const deg2rad = (d: number) => (d * Math.PI) / 180;
-    const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 
     function solarDeclEoT(date: Date) {
       const start = Date.UTC(date.getUTCFullYear(), 0, 0);
@@ -178,7 +177,8 @@ export async function POST(req: Request) {
       prUsed: PR,
       specificYieldPerFaceKWhPerKWp: specificYieldPerFace,
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'error', stack: err?.stack ?? null }, { status: 500 });
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error('Unknown error');
+    return NextResponse.json({ error: error.message || 'error', stack: error.stack ?? null }, { status: 500 });
   }
 }

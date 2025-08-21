@@ -103,7 +103,7 @@ function npv(rate: number, cashflows: number[]) {
   return cashflows.reduce((pv, c, i) => pv + c / Math.pow(1 + rate, i), 0);
 }
 
-function irr(cashflows: number[], guess = 0.05): number | null {
+function irr(cashflows: number[]): number | null {
   // robuste Bisektionssuche in [−0.95, 0.95]
   let low = -0.95, high = 0.95;
   const f = (r: number) => npv(r, cashflows);
@@ -310,7 +310,7 @@ export default function Report({ data }: { data: ReportData }) {
           <select
             className="border rounded px-2 py-1 text-sm"
             value={priceScenario}
-            onChange={(e) => setPriceScenario(e.target.value as any)}
+            onChange={(e) => setPriceScenario(e.target.value as 'baseline' | 'plus30' | 'minus30')}
           >
             <option value="baseline">Baseline</option>
             <option value="plus30">+30% Preise</option>

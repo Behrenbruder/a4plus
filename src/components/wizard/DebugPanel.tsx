@@ -7,7 +7,7 @@ export function DebugPanel({
   filename = 'pvwizard-debug.json',
   defaultOpen = true,
 }: {
-  data: any;
+  data: Record<string, unknown>;
   filename?: string;
   defaultOpen?: boolean;
 }) {

@@ -42,12 +42,12 @@ export async function ensureGoogleMaps(libraries: Array<'drawing' | 'geometry' |
   // Bei neueren Versionen existiert importLibrary – damit stellen wir sicher,
   // dass die gewünschten Libraries bereitstehen, bevor wir sie verwenden.
   // (Bei älteren Builds ist drawing/geometry bereits durch ?libraries=... geladen.)
-  const importer: any = (window as any).google?.maps?.importLibrary;
+  const googleMaps = (window as { google?: { maps?: { importLibrary?: (lib: string) => Promise<unknown> } } }).google?.maps;
+  const importer = googleMaps?.importLibrary;
   if (typeof importer === 'function') {
     for (const lib of libraries) {
       try {
-        // eslint-disable-next-line no-await-in-loop
-        await importer(lib as any);
+        await importer(lib);
       } catch {
         /* ignore – bei älteren Versionen nicht notwendig */
       }

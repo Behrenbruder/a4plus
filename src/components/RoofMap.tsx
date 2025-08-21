@@ -74,7 +74,7 @@ export function RoofMap({ center, defaultTilt = 35, faces, onFacesChange }: Prop
     };
   }, [isLoaded]);
 
-  const [drawingMode, setDrawingMode] = useState<any>(null);
+  const [drawingMode, setDrawingMode] = useState<google.maps.drawing.OverlayType | null>(null);
   const [showInitialPrompt, setShowInitialPrompt] = useState(true);
   const [showContinuePrompt, setShowContinuePrompt] = useState(false);
 
@@ -152,7 +152,7 @@ export function RoofMap({ center, defaultTilt = 35, faces, onFacesChange }: Prop
             <div className="flex gap-3 justify-center">
               <button
                 type="button"
-                onClick={() => { setShowInitialPrompt(false); setDrawingMode('polygon' as any); }}
+                onClick={() => { setShowInitialPrompt(false); setDrawingMode(google.maps.drawing.OverlayType.POLYGON); }}
                 className="px-4 py-2 rounded-lg bg-emerald-600 text-white"
               >
                 Jetzt markieren
@@ -178,7 +178,7 @@ export function RoofMap({ center, defaultTilt = 35, faces, onFacesChange }: Prop
             <div className="flex gap-3 justify-center">
               <button
                 type="button"
-                onClick={() => { setShowContinuePrompt(false); setDrawingMode('polygon' as any); }}
+                onClick={() => { setShowContinuePrompt(false); setDrawingMode(google.maps.drawing.OverlayType.POLYGON); }}
                 className="px-4 py-2 rounded-lg bg-emerald-600 text-white"
               >
                 Ja, weitere Fläche

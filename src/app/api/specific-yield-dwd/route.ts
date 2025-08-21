@@ -81,7 +81,8 @@ export async function POST(req: Request) {
       avgSunHours,
       scalingFactor,
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'error' }, { status: 500 });
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error('Unknown error');
+    return NextResponse.json({ error: error.message || 'error' }, { status: 500 });
   }
 }

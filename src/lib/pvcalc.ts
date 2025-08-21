@@ -96,8 +96,8 @@ function packModulesOnPolygon(
   minY += setbackM;
   maxY -= setbackM;
 
-  let width = maxX - minX;
-  let height = maxY - minY;
+  const width = maxX - minX;
+  const height = maxY - minY;
   if (width <= 0 || height <= 0) return 0;
 
   // Modul footprint (Horizontalprojektion)

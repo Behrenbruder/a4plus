@@ -12,7 +12,7 @@ type Props = {
 const Section = forwardRef<HTMLDivElement, PropsWithChildren<Props>>(
   ({ number, title, done, idAnchor, children }, ref) => {
     return (
-      <section id={idAnchor} ref={ref as any} className="scroll-mt-28">
+      <section id={idAnchor} ref={ref} className="scroll-mt-28">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-semibold">
             {number}

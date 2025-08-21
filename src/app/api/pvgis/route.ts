@@ -33,8 +33,10 @@ function buildParams({
 }
 
 // robuste Extraktion aus PVGIS (PVcalc)
-function extract(json: any) {
-  const totals = json?.outputs?.totals?.fixed ?? json?.outputs?.totals ?? {};
+function extract(json: Record<string, unknown>) {
+  const outputs = json?.outputs as Record<string, unknown> | undefined;
+  const totalsData = outputs?.totals as Record<string, unknown> | undefined;
+  const totals = (totalsData?.fixed as Record<string, unknown>) ?? totalsData ?? {};
 
   // Spezifischer Ertrag (kWh/kWp·a)
   const E_y = Number(totals?.E_y);
@@ -80,8 +82,9 @@ export async function GET(req: NextRequest) {
       gtiKWhm2Year: ext.gtiKWhm2Year ?? null,
       pvgis: { meta: data?.meta },
     }, { headers: { "Cache-Control": "s-maxage=2592000, stale-while-revalidate=86400" } });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err?.message || "PVGIS GET failed" }, { status: 500 });
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error('Unknown error');
+    return NextResponse.json({ ok: false, error: error.message || "PVGIS GET failed" }, { status: 500 });
   }
 }
 
@@ -120,21 +123,22 @@ export async function POST(req: NextRequest) {
             weight,
             meta: { tilt, az, loss, pvgisMeta: data?.meta },
           };
-        } catch (e: any) {
-          return { index: i, ok: false, error: e?.message || "PVGIS fetch failed", weight };
+        } catch (e: unknown) {
+          const error = e instanceof Error ? e : new Error('Unknown error');
+          return { index: i, ok: false, error: error.message || "PVGIS fetch failed", weight };
         }
       })
     );
 
-    const validY = results.filter(r => r.ok && Number.isFinite((r as any).specificYield)) as any[];
+    const validY = results.filter(r => r.ok && 'specificYield' in r && Number.isFinite(Number(r.specificYield)));
     const totalW  = validY.reduce((s, r) => s + (r.weight || 1), 0) || 1;
     const weightedSpecificYield =
-      validY.reduce((s, r) => s + (r.specificYield || 0) * (r.weight || 1), 0) / totalW;
+      validY.reduce((s, r) => s + (Number((r as { specificYield: number | null }).specificYield) || 0) * (r.weight || 1), 0) / totalW;
 
-    const validG = results.filter(r => r.ok && Number.isFinite((r as any).gtiKWhm2Year)) as any[];
+    const validG = results.filter(r => r.ok && 'gtiKWhm2Year' in r && Number.isFinite(Number((r as { gtiKWhm2Year: number | null }).gtiKWhm2Year)));
     const weightedGtiKWhm2Year =
       validG.length > 0
-        ? validG.reduce((s, r) => s + (r.gtiKWhm2Year || 0) * (r.weight || 1), 0) / totalW
+        ? validG.reduce((s, r) => s + (Number((r as { gtiKWhm2Year: number | null }).gtiKWhm2Year) || 0) * (r.weight || 1), 0) / totalW
         : null;
 
     return NextResponse.json({
@@ -143,7 +147,8 @@ export async function POST(req: NextRequest) {
       weightedSpecificYieldKWhPerKWp: Number.isFinite(weightedSpecificYield) ? weightedSpecificYield : null,
       weightedGtiKWhm2Year,
     }, { headers: { "Cache-Control": "s-maxage=2592000, stale-while-revalidate=86400" } });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err?.message || "PVGIS POST failed" }, { status: 500 });
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error('Unknown error');
+    return NextResponse.json({ ok: false, error: error.message || "PVGIS POST failed" }, { status: 500 });
   }
 }
