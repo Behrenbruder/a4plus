@@ -171,7 +171,7 @@ export default function FensterPage() {
             </div>
             <div className="rounded-xl border border-gray-100 p-4">
               <h4 className="font-medium">Lacke</h4>
-              <p className="mt-2 text-[15px]">
+              <p className="mt-2 text-[15px]"> 
                 Hochwertige Produkte der Schweizer <strong>FEYCO&nbsp;AG</strong> – Pionier
                 moderner PVC‑Lackiertechnologie.
               </p>

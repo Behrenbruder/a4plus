@@ -3,7 +3,7 @@ import ProductCarousel from "@/components/ProductCarousel";
 import { LogoBadge } from "@/components/LogoBadge";
 
 const slides = [
-  { title: "PV-Anlagen", img: "/images/pv/pv.jpg", href: "/produkte/pv", caption: "Eigenen Strom erzeugen" },
+  { title: "PV-Anlagen", img: "/images/pv/pv.jpg", href: "produkte/pv/", caption: "Eigenen Strom erzeugen" },
   { title: "Wärmepumpen", img: "/images/waermepumpe/pumpe.jpg", href: "/produkte/waermepumpen", caption: "Nachhaltig heizen" },
   { title: "Batteriespeicher", img: "/images/batterie/speicher.jpg", href: "/produkte/batterie", caption: "Mehr Eigenverbrauch" },
   { title: "Fenster", img: "/images/fenster/window.webp", href: "/produkte/fenster", caption: "Wärmeschutz & Komfort" },
