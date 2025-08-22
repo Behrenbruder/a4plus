@@ -33,11 +33,11 @@ export function Header() {
             </Link>
 
             {/* Dropdown Menu - positioned to expand down and right, with boundary detection */}
-            <div className="absolute top-full left-0 z-50">
+            <div className="absolute top-full left-0 z-50 pointer-events-none group-hover:pointer-events-auto">
               <div
-                className="invisible opacity-0 pointer-events-none
-                           group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto
-                           focus-within:visible focus-within:opacity-100 focus-within:pointer-events-auto
+                className="invisible opacity-0 pointer-events-auto
+                           group-hover:visible group-hover:opacity-100
+                           focus-within:visible focus-within:opacity-100
                            mt-2 w-[720px] max-w-[calc(100vw-2rem)] 
                            rounded-2xl border border-gray-100 bg-white shadow-xl 
                            transition-all duration-200 ease-out
