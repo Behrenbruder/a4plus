@@ -1,4 +1,35 @@
 {
   "buildCommand": "npx prisma generate && next build",
-  "installCommand": "npm install && npx prisma generate"
+  "installCommand": "npm install && npx prisma generate",
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/www.a4plus.eu/(.*)",
+      "destination": "https://a4plus.eu/$1",
+      "permanent": true
+    }
+  ]
 }
