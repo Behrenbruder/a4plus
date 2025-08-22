@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
+import { blockWebDatabaseAccess } from '@/lib/security'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Block web access for security
+  const securityCheck = blockWebDatabaseAccess(request)
+  if (securityCheck) return securityCheck
+
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
@@ -31,6 +36,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Block web access for security
+  const securityCheck = blockWebDatabaseAccess(request)
+  if (securityCheck) return securityCheck
+
   try {
     const supabase = await createSupabaseServerClient()
     const body = await request.json()
@@ -56,6 +65,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Block web access for security
+  const securityCheck = blockWebDatabaseAccess(request)
+  if (securityCheck) return securityCheck
+
   try {
     const supabase = await createSupabaseServerClient()
     const { error } = await supabase

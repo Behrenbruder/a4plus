@@ -8,3 +8,6 @@ dist/
 npm-debug.log*
 yarn-error.log*
 pnpm-lock.yaml
+
+# Desktop App (should be in separate repository)
+desktop-app/

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
+import { blockWebDatabaseAccess } from '@/lib/security'
 
 export async function GET(request: NextRequest) {
+  // Block web access for security
+  const securityCheck = blockWebDatabaseAccess(request)
+  if (securityCheck) return securityCheck
+
   try {
     const supabase = await createSupabaseServerClient()
     const { searchParams } = new URL(request.url)
@@ -51,6 +56,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Block web access for security
+  const securityCheck = blockWebDatabaseAccess(request)
+  if (securityCheck) return securityCheck
+
   try {
     const supabase = await createSupabaseServerClient()
     const body = await request.json()
