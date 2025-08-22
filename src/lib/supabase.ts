@@ -22,13 +22,29 @@ export const createSupabaseServerClient = async () => {
       get(name: string) {
         return cookieStore.get(name)?.value
       },
-      set(name: string, value: string, options: any) {
+      set(name: string, value: string, options: Record<string, unknown>) {
         cookieStore.set({ name, value, ...options })
       },
-      remove(name: string, options: any) {
+      remove(name: string, options: Record<string, unknown>) {
         cookieStore.set({ name, value: '', ...options })
       },
     },
+  })
+}
+
+// Service client for API routes (bypasses RLS with service role)
+export const createSupabaseServiceClient = () => {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for admin operations')
+  }
+  
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
   })
 }
 

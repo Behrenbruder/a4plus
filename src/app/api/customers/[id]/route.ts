@@ -4,18 +4,19 @@ import { blockWebDatabaseAccess } from '@/lib/security'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Block web access for security
   const securityCheck = blockWebDatabaseAccess(request)
   if (securityCheck) return securityCheck
 
+  const { id } = await params
   try {
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase
       .from('customers')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) {
@@ -34,12 +35,13 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Block web access for security
   const securityCheck = blockWebDatabaseAccess(request)
   if (securityCheck) return securityCheck
 
+  const { id } = await params
   try {
     const supabase = await createSupabaseServerClient()
     const body = await request.json()
@@ -47,7 +49,7 @@ export async function PUT(
     const { data, error } = await supabase
       .from('customers')
       .update(body)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -63,18 +65,19 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Block web access for security
   const securityCheck = blockWebDatabaseAccess(request)
   if (securityCheck) return securityCheck
 
+  const { id } = await params
   try {
     const supabase = await createSupabaseServerClient()
     const { error } = await supabase
       .from('customers')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
