@@ -33,7 +33,7 @@ export default function ProductRow({
             src={img}
             alt={imgAlt ?? title}
             className={[
-              "h-full w-full object-contain transition-transform duration-500 will-change-transform",
+              "h-full w-full object-cover transition-transform duration-500 will-change-transform",
               "scale-[1.0] group-hover:scale-1.0",
               imgClassName ?? "",
             ].join(" ")}

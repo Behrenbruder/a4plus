@@ -3,13 +3,11 @@ import ProductCarousel from "@/components/ProductCarousel";
 import { LogoBadge } from "@/components/LogoBadge";
 
 const slides = [
-  { title: "PV-Anlagen", img: "/images/pv/pv.jpg", href: "produkte/pv/", caption: "Eigenen Strom erzeugen" },
+  { title: "Fenster & Beschattung", img: "/images/fenster/window.webp", href: "/produkte/fenster", caption: "Wärmeschutz & Sonnenschutz" },
+  { title: "PV-Anlagen", img: "/images/pv/pv.jpg", href: "/produkte/pv", caption: "Eigenen Strom erzeugen" },
+  { title: "Solarspeicher", img: "/images/batterie/speicher.jpg", href: "/produkte/batterie", caption: "Mehr Eigenverbrauch" },
   { title: "Wärmepumpen", img: "/images/waermepumpe/pumpe.jpg", href: "/produkte/waermepumpen", caption: "Nachhaltig heizen" },
-  { title: "Batteriespeicher", img: "/images/batterie/speicher.jpg", href: "/produkte/batterie", caption: "Mehr Eigenverbrauch" },
-  { title: "Fenster", img: "/images/fenster/window.webp", href: "/produkte/fenster", caption: "Wärmeschutz & Komfort" },
-  { title: "Türen", img: "/images/tueren/tuer.jpg", href: "/produkte/tueren", caption: "Sicher & stilvoll" },
-  { title: "Rolläden", img: "/images/beschattung/rollaeden/Aluprof SKO Vorwand.jpg", href: "/produkte/rollaeden", caption: "Sicht- & Hitzeschutz" },
-  { title: "Dämmmaterial", img: "/images/daemmung/daemmung.jpg", href: "/produkte/daemmung", caption: "Energie sparen" },
+  { title: "Sonstiges", img: "/images/tueren/tuer.jpg", href: "/produkte", caption: "Türen & Dämmung" },
 ];
 
 export default function Home() {
@@ -18,11 +16,11 @@ export default function Home() {
 
       {/* HERO */}
       <section
-        className="relative min-h-[70vh] flex items-center justify-center text-center text-white"
+        className="relative min-h-[35vh] flex items-center justify-center text-center text-white"
         style={{
           backgroundImage: "url('/images/landing/Haus6.jpg')",
           backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundPosition: "top center",
         }}
       >
         <div className="absolute inset-0 bg-black/40" />
@@ -39,9 +37,9 @@ export default function Home() {
       </section>
 
             {/* PRODUKT-KARUSSELL */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-12 bg-gray-50">
         <div className="container">
-          <h2 className="h2 text-center mb-8">Unsere Produkte</h2>
+          <h2 className="h2 text-center mb-6">Unsere Produkte</h2>
           <ProductCarousel slides={slides} />
         </div>
       </section>

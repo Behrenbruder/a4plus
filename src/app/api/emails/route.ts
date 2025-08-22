@@ -1,0 +1,80 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseServerClient } from '@/lib/supabase'
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const { searchParams } = new URL(request.url)
+    const customerId = searchParams.get('customer_id')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+
+    let query = supabase
+      .from('email_logs')
+      .select(`
+        *,
+        customers (
+          first_name,
+          last_name,
+          email
+        )
+      `, { count: 'exact' })
+      .order('created_at', { ascending: false })
+
+    // Filter by customer if specified
+    if (customerId) {
+      query = query.eq('customer_id', customerId)
+    }
+
+    // Add pagination
+    const from = (page - 1) * limit
+    const to = from + limit - 1
+    query = query.range(from, to)
+
+    const { data, error, count } = await query
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      data,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    })
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const body = await request.json()
+
+    const { data, error } = await supabase
+      .from('email_logs')
+      .insert([body])
+      .select(`
+        *,
+        customers (
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .single()
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ data }, { status: 201 })
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}

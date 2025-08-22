@@ -22,7 +22,6 @@ export default function FensterPage() {
         <ProductRow
           title="Kömmerling 88"
           img="/images/fenster/Kömmerling 88.jpg"
-          imgClassName="transform scale-100 object-contain"
           pdf="/pdfs/kommerling-88.pdf"
         >
           <ul className="list-disc pl-5 space-y-1">
