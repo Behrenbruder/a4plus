@@ -162,7 +162,7 @@ export default function ValidationDashboard({ className = '' }: ValidationDashbo
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setSelectedTab(tab.id as any)}
+              onClick={() => setSelectedTab(tab.id as 'overview' | 'details' | 'abtest')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 selectedTab === tab.id
                   ? 'border-emerald-500 text-emerald-600'

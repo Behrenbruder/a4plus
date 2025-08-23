@@ -12,11 +12,11 @@ export default function DatenschutzPage() {
             </p>
             <p className="mb-4">
               Mit den nachfolgend dargestellten Informationen geben wir Ihnen einen Überblick über die Verarbeitung Ihrer personenbezogenen Daten auf unserer Webseite 
-              <a href="https://www.a4plus.eu" className="text-blue-600 hover:underline">https://www.a4plus.eu</a> (nachfolgend „Webseite").
+              <a href="https://www.a4plus.eu" className="text-blue-600 hover:underline">https://www.a4plus.eu</a> (nachfolgend &ldquo;Webseite&rdquo;).
             </p>
             <p className="mb-4">
-              Die Verarbeitung Ihrer personenbezogenen Daten durch uns erfolgt stets im Einklang mit der Datenschutzgrundverordnung (nachfolgend „DSGVO"), 
-              dem Gesetz über den Datenschutz und den Schutz der Privatsphäre in der Telekommunikation und bei digitalen Diensten (nachfolgend „TDDDG") 
+              Die Verarbeitung Ihrer personenbezogenen Daten durch uns erfolgt stets im Einklang mit der Datenschutzgrundverordnung (nachfolgend &ldquo;DSGVO&rdquo;), 
+              dem Gesetz über den Datenschutz und den Schutz der Privatsphäre in der Telekommunikation und bei digitalen Diensten (nachfolgend &ldquo;TDDDG&rdquo;) 
               sowie allen geltenden landesspezifischen Datenschutzbestimmungen.
             </p>
           </div>
@@ -216,7 +216,7 @@ export default function DatenschutzPage() {
             <h2 className="text-2xl font-semibold mb-4">11. SSL-Verschlüsselung</h2>
             <p className="mb-4">
               Diese Seite nutzt aus Sicherheitsgründen und zum Schutz der Übertragung vertraulicher Inhalte eine SSL- bzw. TLS-Verschlüsselung. 
-              Eine verschlüsselte Verbindung erkennen Sie daran, dass die Adresszeile des Browsers von „http://" auf „https://" wechselt und an dem Schloss-Symbol in Ihrer Browserzeile.
+              Eine verschlüsselte Verbindung erkennen Sie daran, dass die Adresszeile des Browsers von &ldquo;http://&rdquo; auf &ldquo;https://&rdquo; wechselt und an dem Schloss-Symbol in Ihrer Browserzeile.
             </p>
           </div>
 

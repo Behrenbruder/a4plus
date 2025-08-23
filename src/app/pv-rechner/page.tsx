@@ -598,12 +598,11 @@ export default function Page() {
     }
     
     // Fallback to legacy method (BDEW/OPSD/SYNTH + EV + Heat Pump)
-    let household: number[];
     let baseNorm = householdBase8760;
     if (!baseNorm || baseNorm.length !== 8760) {
       baseNorm = normalize8760(hourlyLoadProfileFromHousehold('3_4p', undefined));
     }
-    household = baseNorm.map((v) => v * annualHouseholdKWh);
+    const household = baseNorm.map((v) => v * annualHouseholdKWh);
     
     const evProf = hourlyEVProfile(annualEVHomeKWh, evMode, wallboxKW);
     const heatPumpProf = hourlyHeatPumpProfile(heatPump);
