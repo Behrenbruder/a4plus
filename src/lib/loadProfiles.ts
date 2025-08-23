@@ -1,10 +1,13 @@
 // lib/loadProfiles.ts
 // Standard-Haushaltslastprofil (H0) + optionale EV-Ladeprofile als Add-on.
+// Erweitert um verschiedene Haushaltsszenarien mit PV, Speicher und EV
 // Exportiert:
 // - HouseholdProfile, STANDARD_ANNUAL_KWH
+// - HouseholdScenario, SCENARIO_ANNUAL_KWH
 // - hourlyLoadProfileFromHousehold(profile)
 // - hourlyEVProfile(annualKWh, mode, wallboxKW?)
 // - buildCombinedLoadProfile({ annualHouseholdKWh, profile, evAnnualKWh, evMode, wallboxKW })
+// - getScenarioLoadProfile(scenario, householdProfile)
 
 export type HouseholdProfile = '1p' | '2p' | '3_4p' | '5plus';
 
@@ -13,6 +16,55 @@ export const STANDARD_ANNUAL_KWH: Record<HouseholdProfile, number> = {
   '2p': 3000,
   '3_4p': 4000,
   '5plus': 5000,
+};
+
+// Neue Haushaltsszenarien
+export type HouseholdScenario = 
+  | 'household_only'           // Haushalt ohne PV und Speicher
+  | 'household_pv'             // Haushalt mit PV ohne Speicher
+  | 'household_pv_storage'     // Haushalt mit PV und Speicher
+  | 'household_ev'             // Haushalt ohne PV und Speicher mit EV
+  | 'household_pv_ev'          // Haushalt mit PV und EV ohne Speicher
+  | 'household_pv_ev_storage'; // Haushalt mit PV, EV und Speicher
+
+// Durchschnittliche Jahresverbräuche für verschiedene Szenarien (kWh/Jahr)
+export const SCENARIO_ANNUAL_KWH: Record<HouseholdScenario, Record<HouseholdProfile, number>> = {
+  'household_only': {
+    '1p': 2000,
+    '2p': 3000,
+    '3_4p': 4000,
+    '5plus': 5000,
+  },
+  'household_pv': {
+    '1p': 1900,  // Leicht reduziert durch bewussteres Verhalten
+    '2p': 2850,
+    '3_4p': 3800,
+    '5plus': 4750,
+  },
+  'household_pv_storage': {
+    '1p': 1850,  // Weitere Reduktion durch optimierte Nutzung
+    '2p': 2800,
+    '3_4p': 3700,
+    '5plus': 4600,
+  },
+  'household_ev': {
+    '1p': 5500,  // Grundverbrauch + EV (ca. 3500 kWh)
+    '2p': 6500,  // Grundverbrauch + EV
+    '3_4p': 7500,
+    '5plus': 8500,
+  },
+  'household_pv_ev': {
+    '1p': 5300,  // Mit PV etwas effizienter
+    '2p': 6200,
+    '3_4p': 7200,
+    '5plus': 8200,
+  },
+  'household_pv_ev_storage': {
+    '1p': 5100,  // Optimiert durch Speicher
+    '2p': 6000,
+    '3_4p': 7000,
+    '5plus': 8000,
+  },
 };
 
 // --- Hilfsfunktionen für synthetisches H0-Profil (8760 Werte) ---
@@ -125,7 +177,131 @@ export function hourlyEVProfile(
   return arr;
 }
 
-// --- Kombinierte Profile ---
+// --- Szenario-spezifische Lastprofile ---
+
+/**
+ * Erstellt ein szenario-spezifisches Lastprofil mit realistischen Verbrauchsmustern
+ */
+function buildScenarioSpecificProfile(
+  scenario: HouseholdScenario, 
+  householdProfile: HouseholdProfile,
+  baseProfile: number[]
+): number[] {
+  const profile = [...baseProfile];
+  
+  switch (scenario) {
+    case 'household_only':
+      // Standard H0-Profil ohne Anpassungen
+      return profile;
+      
+    case 'household_pv':
+      // Mit PV: Leichte Verschiebung zu Tageszeiten (bewusstere Nutzung)
+      return profile.map((value, hour) => {
+        const h = hour % 24;
+        // Leichte Erhöhung der Mittagsnutzung (10-16 Uhr)
+        if (h >= 10 && h <= 16) {
+          return value * 1.05;
+        }
+        // Leichte Reduktion in den Abendstunden (18-22 Uhr)
+        if (h >= 18 && h <= 22) {
+          return value * 0.98;
+        }
+        return value;
+      });
+      
+    case 'household_pv_storage':
+      // Mit PV + Speicher: Stärkere Verschiebung zu Tageszeiten
+      return profile.map((value, hour) => {
+        const h = hour % 24;
+        // Stärkere Erhöhung der Mittagsnutzung
+        if (h >= 11 && h <= 15) {
+          return value * 1.12;
+        }
+        // Stärkere Reduktion in den Abendstunden
+        if (h >= 18 && h <= 22) {
+          return value * 0.92;
+        }
+        return value;
+      });
+      
+    case 'household_ev':
+      // Mit EV: Zusätzlicher Verbrauch hauptsächlich nachts
+      const evProfile = hourlyEVProfile(3500, 'night_22_06'); // Durchschnittlich 3500 kWh/Jahr für EV
+      return profile.map((value, i) => value + evProfile[i]);
+      
+    case 'household_pv_ev':
+      // Mit PV + EV: EV-Laden teilweise tagsüber, teilweise nachts
+      const evProfileDay = hourlyEVProfile(1500, 'day_12_16'); // 1500 kWh tagsüber
+      const evProfileNight = hourlyEVProfile(2000, 'night_22_06'); // 2000 kWh nachts
+      return profile.map((value, i) => {
+        const h = i % 24;
+        let adjustedValue = value;
+        // Leichte Verschiebung zu Tageszeiten für Haushaltsverbrauch
+        if (h >= 10 && h <= 16) {
+          adjustedValue *= 1.03;
+        }
+        return adjustedValue + evProfileDay[i] + evProfileNight[i];
+      });
+      
+    case 'household_pv_ev_storage':
+      // Mit PV + EV + Speicher: Optimierte Nutzung
+      const evProfileOptimized = hourlyEVProfile(2000, 'day_12_16'); // Mehr tagsüber
+      const evProfileNightOptimized = hourlyEVProfile(1500, 'night_22_06'); // Weniger nachts
+      return profile.map((value, i) => {
+        const h = i % 24;
+        let adjustedValue = value;
+        // Stärkere Verschiebung zu Tageszeiten
+        if (h >= 11 && h <= 15) {
+          adjustedValue *= 1.08;
+        }
+        if (h >= 18 && h <= 22) {
+          adjustedValue *= 0.95;
+        }
+        return adjustedValue + evProfileOptimized[i] + evProfileNightOptimized[i];
+      });
+      
+    default:
+      return profile;
+  }
+}
+
+/**
+ * Hauptfunktion: Erstellt ein Lastprofil für ein bestimmtes Szenario
+ */
+export function getScenarioLoadProfile(
+  scenario: HouseholdScenario,
+  householdProfile: HouseholdProfile
+): number[] {
+  // Basis-H0-Profil holen
+  const baseProfile = hourlyLoadProfileFromHousehold(householdProfile);
+  
+  // Szenario-spezifisches Profil erstellen
+  const scenarioProfile = buildScenarioSpecificProfile(scenario, householdProfile, baseProfile);
+  
+  // Auf den erwarteten Jahresverbrauch skalieren
+  const targetAnnualKWh = SCENARIO_ANNUAL_KWH[scenario][householdProfile];
+  const currentSum = scenarioProfile.reduce((a, b) => a + b, 0);
+  const scaleFactor = targetAnnualKWh / currentSum;
+  
+  return scenarioProfile.map(value => value * scaleFactor);
+}
+
+/**
+ * Hilfsfunktion: Gibt die Szenario-Namen in lesbarer Form zurück
+ */
+export function getScenarioDisplayName(scenario: HouseholdScenario): string {
+  const names: Record<HouseholdScenario, string> = {
+    'household_only': 'Haushalt ohne PV und Speicher',
+    'household_pv': 'Haushalt mit PV ohne Speicher',
+    'household_pv_storage': 'Haushalt mit PV und Speicher',
+    'household_ev': 'Haushalt ohne PV und Speicher mit EV',
+    'household_pv_ev': 'Haushalt mit PV und EV ohne Speicher',
+    'household_pv_ev_storage': 'Haushalt mit PV, EV und Speicher',
+  };
+  return names[scenario];
+}
+
+// --- Kombinierte Profile (Legacy-Funktion) ---
 
 export function buildCombinedLoadProfile(opts: {
   annualHouseholdKWh: number;

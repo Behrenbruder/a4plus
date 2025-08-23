@@ -18,6 +18,7 @@ type Props = {
   defaultTilt: number;
   faces: RoofFace[];
   onFacesChange: (faces: RoofFace[]) => void;
+  perFaceGTI?: number[];
 };
 
 const PRESETS_M2 = [40, 60, 80];
@@ -58,6 +59,7 @@ export function StepMap({
   defaultTilt,
   faces,
   onFacesChange,
+  perFaceGTI = [],
 }: Props) {
   const [mode, setMode] = useState<Mode>('map');
   const [preset, setPreset] = useState<number>(PRESETS_M2[0]);
@@ -194,6 +196,8 @@ export function StepMap({
             const slopeArea = isPreset
               ? (f.areaHorizM2 || 0)               // Preset: reale Fläche zeigen
               : horizToSlopeArea(f.areaHorizM2 || 0, f.tiltDeg || 0);
+            
+            const gtiValue = perFaceGTI[i];
 
             return (
               <div
@@ -226,11 +230,11 @@ export function StepMap({
                   </select>
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="md:col-span-1">
                   <label className="block text-xs text-gray-600">Neigung (°)</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-2 py-2 border rounded-lg text-sm"
                     value={Math.round(f.tiltDeg)}
                     onChange={(e) =>
                       patchFace(f.id, {
@@ -240,15 +244,37 @@ export function StepMap({
                   />
                 </div>
 
+                <div className="md:col-span-2">
+                  <div className="text-xs text-gray-600 flex items-center gap-1">
+                    GTI-Wert
+                    <div className="relative group">
+                      <svg 
+                        className="w-3 h-3 text-gray-400 cursor-help" 
+                        fill="currentColor" 
+                        viewBox="0 0 20 20"
+                      >
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                        GTI (Global Tilted Irradiation) ist die jährliche Globalstrahlung auf die geneigte Fläche. Quelle: PVGIS v5.3 (SARAH3)
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="font-medium">
+                    {gtiValue != null ? `${Math.round(gtiValue).toLocaleString()} kWh/m²·a` : '—'}
+                  </div>
+                </div>
+
                 {/* Preset: nur eine Fläche anzeigen; Polygon: horiz + geneigt */}
                 {isPreset ? (
-                  <div className="md:col-span-4">
+                  <div className="md:col-span-3">
                     <div className="text-xs text-gray-600">Fläche</div>
                     <div>{(f.areaHorizM2 || 0).toFixed(1)} m²</div>
                   </div>
                 ) : (
                   <>
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-1">
                       <div className="text-xs text-gray-600">Fläche (horiz.)</div>
                       <div>{(f.areaHorizM2 || 0).toFixed(1)} m²</div>
                     </div>

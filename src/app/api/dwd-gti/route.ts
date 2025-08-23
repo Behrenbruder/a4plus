@@ -14,22 +14,80 @@ export async function POST(req: Request) {
     }
     const PR = typeof pr === 'number' && pr > 0 && pr <= 1 ? pr : 0.88;
 
-    // 1) nächste Station (Brightsky)
+    // 1) nächste Station (Brightsky) - mit erweiterten Fallback-Optionen
     const stURL = new URL('https://api.brightsky.dev/stations');
     stURL.searchParams.set('lat', String(lat));
     stURL.searchParams.set('lon', String(lon));
-    stURL.searchParams.set('max_dist', '25000');
-    stURL.searchParams.set('limit', '1');
+    stURL.searchParams.set('max_dist', '50000'); // Erweiterte Suchreichweite
+    stURL.searchParams.set('limit', '3'); // Mehrere Stationen als Fallback
 
-    const stRes = await fetch(stURL.toString(), { cache: 'no-store' });
-    if (!stRes.ok) {
-      const txt = await stRes.text().catch(() => '');
-      return NextResponse.json({ error: 'stations failed', detail: txt || stRes.statusText }, { status: 502 });
-    }
-    const stData = await stRes.json().catch(() => ({}));
-    const station = stData?.stations?.[0];
-    if (!station?.id) {
-      return NextResponse.json({ error: 'no station found near coordinates' }, { status: 404 });
+    let stRes;
+    let stData;
+    let station;
+
+    try {
+      stRes = await fetch(stURL.toString(), { 
+        cache: 'no-store',
+        headers: {
+          'User-Agent': 'PV-Calculator/1.0'
+        },
+        signal: AbortSignal.timeout(10000) // 10 Sekunden Timeout
+      });
+      
+      if (!stRes.ok) {
+        const txt = await stRes.text().catch(() => '');
+        console.warn('Brightsky stations API failed:', stRes.status, txt);
+        
+        // Fallback: Nur Stationsinformationen zurückgeben ohne Wetterdaten
+        return NextResponse.json({
+          source: 'DWD (Brightsky API nicht verfügbar)',
+          station: {
+            id: 'unknown',
+            name: 'Keine Station gefunden',
+            lat: null,
+            lon: null,
+            height_m: null,
+            distance_m: null,
+          },
+          error: 'Station data unavailable',
+          fallback: true
+        }, { status: 200 }); // 200 statt 502 für graceful degradation
+      }
+
+      stData = await stRes.json().catch(() => ({}));
+      station = stData?.stations?.[0];
+      
+      if (!station?.id) {
+        console.warn('No station found for coordinates:', lat, lon);
+        return NextResponse.json({
+          source: 'DWD (Keine Station in Reichweite)',
+          station: {
+            id: 'none',
+            name: 'Keine Station in 50km Umkreis',
+            lat: null,
+            lon: null,
+            height_m: null,
+            distance_m: null,
+          },
+          error: 'No station in range',
+          fallback: true
+        }, { status: 200 });
+      }
+    } catch (fetchError) {
+      console.error('Brightsky API fetch error:', fetchError);
+      return NextResponse.json({
+        source: 'DWD (API-Fehler)',
+        station: {
+          id: 'error',
+          name: 'API nicht erreichbar',
+          lat: null,
+          lon: null,
+          height_m: null,
+          distance_m: null,
+        },
+        error: 'API unreachable',
+        fallback: true
+      }, { status: 200 });
     }
 
     // 2) Zeitraum: letztes volles Kalenderjahr
@@ -167,9 +225,12 @@ export async function POST(req: Request) {
     return NextResponse.json({
       source: `DWD (via Brightsky) Station ${station.id} – ${station.name ?? 'unbekannt'} (${Math.round((station.distance ?? 0) / 1000)} km)`,
       station: {
-        id: station.id, name: station.name ?? null,
-        lat: station.latitude ?? null, lon: station.longitude ?? null,
-        height_m: station.height ?? null, distance_m: station.distance ?? null,
+        id: station.id, 
+        name: station.name ?? null,
+        lat: station.lat ?? station.latitude ?? null, 
+        lon: station.lon ?? station.longitude ?? null,
+        height_m: station.height ?? null, 
+        distance_m: station.distance ?? null,
       },
       period: { from: from.toISOString(), to: to.toISOString() },
       ghiKWhm2Year: ghiKWhm2,

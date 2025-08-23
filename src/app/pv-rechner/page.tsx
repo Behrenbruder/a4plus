@@ -14,7 +14,8 @@ import { StepMap } from '@/components/wizard/StepMap';
 import { StepModulePacking } from '@/components/wizard/StepModulePacking';
 import { StepBattery } from '@/components/wizard/StepBattery';
 import { StepEV } from '@/components/wizard/StepEV';
-import { StepPrices } from '@/components/wizard/StepPrices';
+import { StepHeatPump, type HeatPumpConfig } from '@/components/wizard/StepHeatPump';
+import { StepPrices, type StepPricesSubmit } from '@/components/wizard/StepPrices';
 import { StepErgebnisse } from '@/components/wizard/StepErgebnisse';
 import { DebugPanel } from '@/components/wizard/DebugPanel';
 import Report from '@/components/report/Report';
@@ -28,19 +29,30 @@ import {
   EconomicConfig,
   LatLng,
   BatteryConfig,
+  SystemLossBreakdown,
+  FinancialMetrics,
+  CustomLoadProfile,
+  LoadProfileSource,
 } from '@/lib/types';
 
 import {
   computeFaceKWp,
   hourlyPVFromAnnual,
   dispatchGreedy,
+  calculateSystemLossBreakdown,
+  systemLossFactorFromBreakdown,
+  calculateTotalCapex,
+  calculateFinancialMetrics,
+  calculateHybridMetrics,
 } from '@/lib/pvcalc';
 
 /* Synthetisches H0 (nur Fallback) + Standardwerte */
 import {
   hourlyLoadProfileFromHousehold, // nur Fallback
   STANDARD_ANNUAL_KWH,
+  getScenarioLoadProfile,
   type HouseholdProfile,
+  type HouseholdScenario,
 } from '@/lib/loadProfiles';
 
 /* -------------------------- Konstanten/Defaults -------------------------- */
@@ -127,6 +139,64 @@ function hourlyEVProfile(annualKWh: number, mode: EVMode, wallboxKW?: number): n
   return arr;
 }
 
+/* -------------------------- Wärmepumpen-Profil -------------------------- */
+
+function hourlyHeatPumpProfile(config: HeatPumpConfig): number[] {
+  const H = 8760;
+  const arr = new Array<number>(H).fill(0);
+  
+  if (!config.hasHeatPump || !config.annualConsumptionKWh || config.annualConsumptionKWh <= 0) {
+    return arr;
+  }
+
+  // Simple distribution over heating season (Oct-Apr)
+  const heatingSeasonMonths = [1, 2, 3, 4, 10, 11, 12];
+  const heatingSeasonSet = new Set(heatingSeasonMonths);
+  
+  // Count heating season days
+  let heatingSeasonDays = 0;
+  for (let day = 0; day < 365; day++) {
+    const date = new Date(2024, 0, 1 + day);
+    const month = date.getMonth() + 1;
+    if (heatingSeasonSet.has(month)) {
+      heatingSeasonDays++;
+    }
+  }
+  
+  if (heatingSeasonDays === 0) return arr;
+  
+  // Daily electrical consumption during heating season
+  const dailyElectricalKWh = config.annualConsumptionKWh / heatingSeasonDays;
+  
+  // Typical heat pump operation pattern (higher during morning and evening)
+  const hourlyPattern = [
+    0.8, 0.7, 0.6, 0.6, 0.7, 0.9, // 0-5: Night/early morning
+    1.2, 1.5, 1.3, 1.0, 0.8, 0.7, // 6-11: Morning peak
+    0.6, 0.5, 0.5, 0.6, 0.8, 1.2, // 12-17: Afternoon
+    1.5, 1.4, 1.2, 1.1, 1.0, 0.9  // 18-23: Evening peak
+  ];
+  
+  const patternSum = hourlyPattern.reduce((a, b) => a + b, 0);
+  const normalizedPattern = hourlyPattern.map(v => v / patternSum);
+  
+  // Apply pattern to each day
+  for (let day = 0; day < 365; day++) {
+    const date = new Date(2024, 0, 1 + day);
+    const month = date.getMonth() + 1;
+    
+    if (heatingSeasonSet.has(month)) {
+      for (let hour = 0; hour < 24; hour++) {
+        const idx = day * 24 + hour;
+        if (idx < H) {
+          arr[idx] = dailyElectricalKWh * normalizedPattern[hour];
+        }
+      }
+    }
+  }
+  
+  return arr;
+}
+
 /* -------------------------- Hilfsfunktionen -------------------------- */
 
 function normalize8760(arr: unknown): number[] {
@@ -161,17 +231,24 @@ export default function Page() {
   const [address, setAddress] = useState<string>('');
   const [faces, setFaces] = useState<RoofFace[]>([]);
 
-  /* Verbrauch (manuell ODER Personen) */
+  /* Verbrauch (manuell ODER Personen ODER custom CSV ODER Szenario) */
   const [annualKnownKWh, setAnnualKnownKWh] = useState<number | undefined>(undefined);
   const [persons, setPersons] = useState<number | undefined>(undefined);
+  const [customLoadProfile, setCustomLoadProfile] = useState<CustomLoadProfile | null>(null);
+  const [householdScenario, setHouseholdScenario] = useState<HouseholdScenario | undefined>(undefined);
 
   /* Preise, Module, Settings */
   const [econ, setEcon] = useState<EconomicConfig>({ ...DEFAULT_ECON });
   const [module, setModule] = useState<ModuleConfig>({ ...DEFAULT_MODULE });
   const [packing, setPacking] = useState<PackingOptions>({ ...DEFAULT_PACK });
   const [settings, setSettings] = useState<SimulationSettings>({ ...DEFAULT_SETT });
+  
+  /* Neue Features */
+  const [systemLossBreakdown, setSystemLossBreakdown] = useState<SystemLossBreakdown>(
+    calculateSystemLossBreakdown()
+  );
 
-  /* Batterie / EV */
+  /* Batterie / EV / Wärmepumpe */
   const [batteryKWh, setBatteryKWh] = useState<number>(25);
   const [ev, setEV] = useState({
     kmPerYear: 20000,
@@ -180,6 +257,11 @@ export default function Page() {
   });
   const [evMode, setEvMode] = useState<EVMode>('night_22_06');
   const [wallboxKW, setWallboxKW] = useState<number | undefined>(undefined);
+  
+  const [heatPump, setHeatPump] = useState<HeatPumpConfig>({
+    hasHeatPump: false,
+    annualConsumptionKWh: 4000,
+  });
 
   /* Paketierung */
   const [kwpOverrideByFace, setKwpOverrideByFace] = useState<Record<string, number>>({});
@@ -197,8 +279,10 @@ export default function Page() {
   const [perFaceYield, setPerFaceYield] = useState<number[]>([]);
   const [perFaceGTI, setPerFaceGTI] = useState<number[]>([]);
   const [pvgisWeightedGTI, setPvgisWeightedGTI] = useState<number | null>(null);
-  const [pvgisSource, setPvgisSource] = useState<string | null>('PVGIS v5.2 (SARAH2)');
+  const [pvgisSource, setPvgisSource] = useState<string | null>('PVGIS v5.3 (SARAH3)');
   const [pvgisError, setPvgisError] = useState<string | null>(null);
+
+
 
   /* ---------------------- Autosave laden ---------------------- */
   useEffect(() => {
@@ -213,6 +297,7 @@ export default function Page() {
       v.faces && setFaces(v.faces);
       if (typeof v.annualKnownKWh === 'number') setAnnualKnownKWh(v.annualKnownKWh);
       if (typeof v.persons === 'number') setPersons(v.persons);
+      if (v.householdScenario) setHouseholdScenario(v.householdScenario as HouseholdScenario);
       v.econ && setEcon(v.econ);
       v.module && setModule(v.module);
       v.packing && setPacking(v.packing);
@@ -231,6 +316,7 @@ export default function Page() {
       if (v.profileSource) setProfileSource(v.profileSource);
       if (v.evMode) setEvMode(v.evMode);
       if (typeof v.wallboxKW === 'number') setWallboxKW(v.wallboxKW);
+      if (v.heatPump) setHeatPump(v.heatPump);
     } catch {}
   }, []);
 
@@ -263,6 +349,7 @@ export default function Page() {
           profileSource,
           evMode,
           wallboxKW,
+          heatPump,
         }),
       );
     } catch {}
@@ -290,6 +377,7 @@ export default function Page() {
     profileSource,
     evMode,
     wallboxKW,
+    heatPump,
   ]);
 
   /* ---------------------- BDEW/OPSD/SYNTH Profil laden ---------------------- */
@@ -350,15 +438,33 @@ export default function Page() {
     return Number.isFinite(byProfile) ? byProfile : 3000;
   }, [annualKnownKWh, chosenProfile]);
 
-  const handleStepLoadNext = (vals: { annualKnownKWh?: number; persons?: number }) => {
+  const handleStepLoadNext = (vals: { annualKnownKWh?: number; persons?: number; customProfile?: CustomLoadProfile; scenario?: HouseholdScenario }) => {
+    if (vals.customProfile) {
+      setCustomLoadProfile(vals.customProfile);
+      setAnnualKnownKWh(undefined);
+      setPersons(undefined);
+      setHouseholdScenario(undefined);
+      return;
+    }
+    if (vals.scenario) {
+      setHouseholdScenario(vals.scenario);
+      setAnnualKnownKWh(undefined);
+      setPersons(undefined);
+      setCustomLoadProfile(null);
+      return;
+    }
     if (Number.isFinite(vals.annualKnownKWh)) {
       setAnnualKnownKWh(Number(vals.annualKnownKWh));
       setPersons(undefined);
+      setCustomLoadProfile(null);
+      setHouseholdScenario(undefined);
       return;
     }
     if (Number.isFinite(vals.persons)) {
       setPersons(Number(vals.persons));
       setAnnualKnownKWh(undefined);
+      setCustomLoadProfile(null);
+      setHouseholdScenario(undefined);
       return;
     }
   };
@@ -442,7 +548,7 @@ export default function Page() {
               ? Number(data?.weightedGtiKWhm2Year)
               : null,
           );
-          setPvgisSource('PVGIS v5.2 (SARAH2)');
+          setPvgisSource('PVGIS v5.3 (SARAH3)');
         }
       } catch (e: unknown) {
         if (!abort) {
@@ -460,6 +566,7 @@ export default function Page() {
     };
   }, [center.lat, center.lng, faces, perFaceKWp, settings.systemLossFactor, settings.shadingFactor]);
 
+
   /* ---------------------- Jahreswerte PV ---------------------- */
   const annualPVPerFace = useMemo(
     () => perFaceKWp.map((k, i) => Math.round(k * (perFaceYield[i] ?? 1000))),
@@ -474,16 +581,34 @@ export default function Page() {
     return (km / 100) * kwhPer100 * (homePct / 100);
   }, [ev]);
 
-  /* ---------------------- Lastprofil (Haushalt + EV) ---------------------- */
+  /* ---------------------- Lastprofil (Haushalt + EV + Wärmepumpe) ---------------------- */
   const loadProfile = useMemo(() => {
+    // Use custom CSV profile if available
+    if (customLoadProfile && customLoadProfile.data && customLoadProfile.data.length === 8760) {
+      // Add heat pump consumption to custom profile
+      const heatPumpProf = hourlyHeatPumpProfile(heatPump);
+      return customLoadProfile.data.map((v, i) => v + (heatPumpProf[i] || 0));
+    }
+    
+    // Use scenario-based profile if selected
+    if (householdScenario) {
+      const scenarioProfile = getScenarioLoadProfile(householdScenario, chosenProfile);
+      const heatPumpProf = hourlyHeatPumpProfile(heatPump);
+      return scenarioProfile.map((v, i) => v + (heatPumpProf[i] || 0));
+    }
+    
+    // Fallback to legacy method (BDEW/OPSD/SYNTH + EV + Heat Pump)
+    let household: number[];
     let baseNorm = householdBase8760;
     if (!baseNorm || baseNorm.length !== 8760) {
       baseNorm = normalize8760(hourlyLoadProfileFromHousehold('3_4p', undefined));
     }
-    const household = baseNorm.map((v) => v * annualHouseholdKWh);
+    household = baseNorm.map((v) => v * annualHouseholdKWh);
+    
     const evProf = hourlyEVProfile(annualEVHomeKWh, evMode, wallboxKW);
-    return household.map((v, i) => v + (evProf[i] || 0));
-  }, [householdBase8760, annualHouseholdKWh, annualEVHomeKWh, evMode, wallboxKW]);
+    const heatPumpProf = hourlyHeatPumpProfile(heatPump);
+    return household.map((v, i) => v + (evProf[i] || 0) + (heatPumpProf[i] || 0));
+  }, [customLoadProfile, householdScenario, chosenProfile, householdBase8760, annualHouseholdKWh, annualEVHomeKWh, evMode, wallboxKW, heatPump]);
 
   /* ---------------------- PV stündlich ---------------------- */
   const pvProfile = useMemo(() => {
@@ -519,12 +644,25 @@ export default function Page() {
   const annualPV = useMemo(() => annualPVPerFace.reduce((a, b) => a + b, 0), [annualPVPerFace]);
   const annualConsumption = useMemo(() => loadProfile.reduce((a, b) => a + b, 0), [loadProfile]);
 
-  const eigenverbrauchKWh = Math.max(
-    0,
-    (dispatch as { selfConsumptionKWh?: number }).selfConsumptionKWh ?? (annualPV - dispatch.feedInKWh),
-  );
-  const eigenverbrauchQuote = annualPV > 0 ? eigenverbrauchKWh / annualPV : 0;
-  const autarkie = annualConsumption > 0 ? 1 - dispatch.gridImportKWh / annualConsumption : 0;
+  // Hybrid-Berechnung für Autarkie und Eigenverbrauch
+  const hybridMetrics = useMemo(() => {
+    const annualHeatPumpKWh = heatPump.hasHeatPump ? heatPump.annualConsumptionKWh : 0;
+    
+    return calculateHybridMetrics(
+      annualPV,
+      annualHouseholdKWh, // Nur Haushalt ohne EV und Wärmepumpe
+      batteryKWh,
+      annualEVHomeKWh,
+      annualHeatPumpKWh
+    );
+  }, [annualPV, annualHouseholdKWh, batteryKWh, annualEVHomeKWh, heatPump]);
+
+  // Verwende Hybrid-Metriken für Autarkie und Eigenverbrauch
+  const autarkie = hybridMetrics.autarky;
+  const eigenverbrauchQuote = hybridMetrics.selfConsumption;
+  
+  // Berechne Eigenverbrauch in kWh basierend auf der Quote
+  const eigenverbrauchKWh = annualPV * eigenverbrauchQuote;
 
   const priceEUR = (econ.electricityPriceCtPerKWh || 0) / 100;
   const feedEUR = (econ.feedInTariffCtPerKWh || 0) / 100;
@@ -540,6 +678,35 @@ export default function Page() {
     batteryKWh > 0 && batteryChargeKWh > 0
       ? (batteryDischargeKWh / batteryChargeKWh) * 100
       : null;
+
+  /* ---------------------- Erweiterte Finanzberechnungen ---------------------- */
+  const totalCapex = useMemo(() => {
+    return calculateTotalCapex(perFaceKWpSum, batteryKWh, econ);
+  }, [perFaceKWpSum, batteryKWh, econ]);
+
+  const financialMetrics = useMemo(() => {
+    const annualMaintenance = econ.maintenanceCostPerYearEUR || 0;
+    const annualInsurance = econ.insuranceCostPerYearEUR || 0;
+    
+    return calculateFinancialMetrics(
+      einsparungJahr,
+      totalCapex.totalCapex,
+      annualMaintenance,
+      annualInsurance,
+      settings.horizonYears
+    );
+  }, [einsparungJahr, totalCapex.totalCapex, econ.maintenanceCostPerYearEUR, econ.insuranceCostPerYearEUR, settings.horizonYears]);
+
+  // Systemverluste aus Breakdown aktualisieren
+  useEffect(() => {
+    const newSystemLossFactor = systemLossFactorFromBreakdown(systemLossBreakdown);
+    if (Math.abs(newSystemLossFactor - settings.systemLossFactor) > 0.001) {
+      setSettings(prev => ({
+        ...prev,
+        systemLossFactor: newSystemLossFactor
+      }));
+    }
+  }, [systemLossBreakdown, settings.systemLossFactor]);
 
   /* ---------------------- 24h-Mittel fürs Debug ---------------------- */
   const householdOnlyProfile = useMemo(() => {
@@ -663,7 +830,7 @@ export default function Page() {
   /* ---------------------- UI ---------------------- */
   const sections = [
     { id: 's1-dachart', title: 'Dachart', done: !!roofType },
-    { id: 's2-verbrauch', title: 'Verbrauch', done: !!annualHouseholdKWh },
+    { id: 's2-verbrauch', title: 'Verbrauch', done: !!annualHouseholdKWh || !!customLoadProfile },
     { id: 's3-preise', title: 'Preise', done: true },
     { id: 's4-adresse', title: 'Adresse', done: !!address },
     { id: 's5-dachflaechen', title: 'Dachflächen markieren', done: faces.length > 0 },
@@ -671,7 +838,8 @@ export default function Page() {
     { id: 's7-module', title: 'Modul & Paketierung', done: true },
     { id: 's8-speicher', title: 'Speicher', done: true },
     { id: 's9-ev', title: 'E-Auto', done: true },
-    { id: 's10-ergebnisse', title: 'Ergebnisse', done: true },
+    { id: 's10-waermepumpe', title: 'Wärmepumpe', done: true },
+    { id: 's11-ergebnisse', title: 'Ergebnisse', done: true },
   ];
   const pct = Math.round((sections.filter((s) => s.done).length / sections.length) * 100);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -770,11 +938,13 @@ export default function Page() {
           />
         </Section>
 
-        <Section number={2} title="Verbrauch" idAnchor="s2-verbrauch" done={!!annualHouseholdKWh}>
+        <Section number={2} title="Verbrauch" idAnchor="s2-verbrauch" done={!!annualHouseholdKWh || !!customLoadProfile || !!householdScenario}>
           <StepLoad
             annualKnownKWh={annualKnownKWh}
             persons={persons}
             resolvedAnnualKWh={annualHouseholdKWh}
+            customProfile={customLoadProfile || undefined}
+            scenario={householdScenario}
             onNext={handleStepLoadNext}
           />
         </Section>
@@ -783,11 +953,15 @@ export default function Page() {
           <StepPrices
             priceCt={econ.electricityPriceCtPerKWh}
             feedinCt={econ.feedInTariffCtPerKWh}
-            onNext={({ priceCt, feedinCt }) =>
+            capexPerKWpEUR={econ.capexPerKWpEUR}
+            capexBatteryPerKWhEUR={econ.capexBatteryPerKWhEUR}
+            onNext={({ priceCt, feedinCt, capexPerKWpEUR, capexBatteryPerKWhEUR }) =>
               setEcon({
                 ...econ,
                 electricityPriceCtPerKWh: priceCt,
                 feedInTariffCtPerKWh: feedinCt,
+                capexPerKWpEUR,
+                capexBatteryPerKWhEUR,
               })
             }
           />
@@ -805,9 +979,24 @@ export default function Page() {
           />
 
           {(pvgisSource || pvgisWeightedGTI != null) && (
-            <div className="mt-3 p-3 rounded-xl bg-gray-50 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="mt-3 p-3 rounded-xl bg-gray-50 grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <div className="text-xs text-gray-600">Quelle</div>
+                <div className="text-xs text-gray-600 flex items-center gap-1">
+                  Quelle
+                  <div className="relative group">
+                    <svg 
+                      className="w-3 h-3 text-gray-400 cursor-help" 
+                      fill="currentColor" 
+                      viewBox="0 0 20 20"
+                    >
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                      PVGIS (Photovoltaic Geographical Information System) ist ein kostenloser Service der Europäischen Kommission zur Berechnung der Solarstrahlung und PV-Erträge.
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
                 <div className="font-medium">{pvgisSource ?? 'PVGIS'}</div>
               </div>
               <div>
@@ -845,7 +1034,13 @@ export default function Page() {
           idAnchor="s5-dachflaechen"
           done={faces.length > 0}
         >
-          <StepMap center={center} defaultTilt={defaultTilt} faces={faces} onFacesChange={setFaces} />
+          <StepMap 
+            center={center} 
+            defaultTilt={defaultTilt} 
+            faces={faces} 
+            onFacesChange={setFaces}
+            perFaceGTI={perFaceGTI}
+          />
         </Section>
 
         <Section number={7} title="Modul & Paketierung" idAnchor="s7-module" done>
@@ -925,7 +1120,14 @@ export default function Page() {
           </div>
         </Section>
 
-        <Section number={10} title="Ergebnisse" idAnchor="s10-ergebnisse" done>
+        <Section number={10} title="Wärmepumpe" idAnchor="s10-waermepumpe" done>
+          <StepHeatPump
+            value={heatPump}
+            onNext={(config) => setHeatPump(config)}
+          />
+        </Section>
+
+        <Section number={11} title="Ergebnisse" idAnchor="s11-ergebnisse" done>
           <StepErgebnisse
             totalKWp={perFaceKWpSum}
             annualPV={annualPV}
@@ -936,6 +1138,11 @@ export default function Page() {
             batteryUsagePct={batteryUsage}
             autarkie={autarkie}
             eigenverbrauch={eigenverbrauchQuote}
+            financialMetrics={financialMetrics}
+            totalCapexEUR={totalCapex.totalCapex}
+            systemLossBreakdown={systemLossBreakdown}
+            annualMaintenanceEUR={econ.maintenanceCostPerYearEUR}
+            annualInsuranceEUR={econ.insuranceCostPerYearEUR}
           />
           <div className="mt-6">
             <Report data={debugData} />

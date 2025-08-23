@@ -1,5 +1,5 @@
 // /src/lib/pvcalc.ts
-import type { RoofFace, ModuleConfig, PackingOptions, BatteryConfig } from "./types";
+import type { RoofFace, ModuleConfig, PackingOptions, BatteryConfig, EconomicConfig, SystemLossBreakdown, FinancialMetrics } from "./types";
 
 /* -------------------- kleine Utils -------------------- */
 const toRad = (d: number) => (d * Math.PI) / 180;
@@ -288,5 +288,393 @@ export function dispatchGreedy(
     gridImportKWh: grid,
     feedInKWh: feed,
     selfConsumptionKWh: self,
+  };
+}
+
+/* -------------------- Systemverluste Aufschlüsselung -------------------- */
+export function calculateSystemLossBreakdown(
+  inverterLoss = 3,
+  wiringLoss = 2,
+  soilingLoss = 2,
+  shadingLoss = 3,
+  temperatureLoss = 5,
+  mismatchLoss = 2
+): SystemLossBreakdown {
+  const totalLoss = inverterLoss + wiringLoss + soilingLoss + shadingLoss + temperatureLoss + mismatchLoss;
+  
+  return {
+    inverterLossPct: inverterLoss,
+    wiringLossPct: wiringLoss,
+    soilingLossPct: soilingLoss,
+    shadingLossPct: shadingLoss,
+    temperatureLossPct: temperatureLoss,
+    mismatchLossPct: mismatchLoss,
+    totalLossPct: totalLoss,
+  };
+}
+
+export function systemLossFactorFromBreakdown(breakdown: SystemLossBreakdown): number {
+  return (100 - breakdown.totalLossPct) / 100;
+}
+
+/* -------------------- Erweiterte Finanzberechnungen -------------------- */
+export function calculateTotalCapex(
+  totalKWp: number,
+  batteryKWh: number,
+  econ: EconomicConfig
+): { pvCapex: number; batteryCapex: number; totalCapex: number } {
+  // PV-System Kosten
+  const pvCapex = econ.pvSystemCapexEUR ?? (totalKWp * econ.capexPerKWpEUR);
+  
+  // Batterie Kosten
+  const batteryCapex = batteryKWh > 0 
+    ? (econ.batteryCapexEUR ?? (batteryKWh * econ.capexBatteryPerKWhEUR))
+    : 0;
+  
+  // Zusätzliche Kosten
+  const installationCost = econ.installationCostEUR ?? 0;
+  
+  const totalCapex = pvCapex + batteryCapex + installationCost;
+  
+  return { pvCapex, batteryCapex, totalCapex };
+}
+
+export function calculateFinancialMetrics(
+  annualSavingsEUR: number,
+  totalCapexEUR: number,
+  annualMaintenanceEUR: number,
+  annualInsuranceEUR: number,
+  horizonYears: number,
+  discountRate = 0.04 // 4% Diskontierungssatz
+): FinancialMetrics {
+  const annualNetSavings = annualSavingsEUR - annualMaintenanceEUR - annualInsuranceEUR;
+  
+  // Amortisationszeit (einfach)
+  const paybackTimeYears = totalCapexEUR / Math.max(annualNetSavings, 1);
+  
+  // NPV Berechnung
+  let npv = -totalCapexEUR; // Anfangsinvestition
+  for (let year = 1; year <= horizonYears; year++) {
+    const presentValue = annualNetSavings / Math.pow(1 + discountRate, year);
+    npv += presentValue;
+  }
+  
+  // IRR Berechnung (vereinfacht durch Iteration)
+  let irr = 0;
+  if (annualNetSavings > 0) {
+    let low = 0, high = 1;
+    for (let i = 0; i < 100; i++) {
+      const rate = (low + high) / 2;
+      let testNPV = -totalCapexEUR;
+      for (let year = 1; year <= horizonYears; year++) {
+        testNPV += annualNetSavings / Math.pow(1 + rate, year);
+      }
+      if (Math.abs(testNPV) < 1) {
+        irr = rate;
+        break;
+      }
+      if (testNPV > 0) low = rate;
+      else high = rate;
+    }
+  }
+  
+  // ROI
+  const totalReturns = annualNetSavings * horizonYears;
+  const roiPct = ((totalReturns - totalCapexEUR) / totalCapexEUR) * 100;
+  
+  // LCOE (vereinfacht)
+  const totalEnergyKWh = annualSavingsEUR * horizonYears / (35 / 100); // Annahme 35ct/kWh
+  const lcoeCtPerKWh = (totalCapexEUR + (annualMaintenanceEUR + annualInsuranceEUR) * horizonYears) / totalEnergyKWh;
+  
+  return {
+    paybackTimeYears: Math.max(0, paybackTimeYears),
+    npvEUR: npv,
+    irrPct: irr * 100,
+    roiPct,
+    lcoeCtPerKWh: lcoeCtPerKWh * 100, // in ct/kWh
+  };
+}
+
+/* -------------------- CSV Import Hilfsfunktionen -------------------- */
+export function parseCSVLoadProfile(csvContent: string): number[] | null {
+  try {
+    const lines = csvContent.trim().split('\n');
+    const data: number[] = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line || line.startsWith('#') || line.startsWith('//')) continue;
+      
+      // Versuche verschiedene Trennzeichen
+      const values = line.split(/[,;\t]/).map(v => v.trim());
+      
+      for (const value of values) {
+        const num = parseFloat(value.replace(',', '.'));
+        if (!isNaN(num) && isFinite(num)) {
+          data.push(Math.max(0, num)); // Negative Werte auf 0 setzen
+        }
+      }
+    }
+    
+    // Validierung: Sollte 8760 Werte haben
+    if (data.length === 8760) {
+      return data;
+    } else if (data.length > 8760) {
+      // Zu viele Werte - nehme die ersten 8760
+      return data.slice(0, 8760);
+    } else if (data.length >= 8000) {
+      // Nahe genug - fülle mit Durchschnittswerten auf
+      const avg = data.reduce((a, b) => a + b, 0) / data.length;
+      while (data.length < 8760) {
+        data.push(avg);
+      }
+      return data;
+    }
+    
+    return null; // Zu wenige Daten
+  } catch (error) {
+    console.error('Fehler beim Parsen der CSV-Daten:', error);
+    return null;
+  }
+}
+
+export function validateLoadProfile(data: number[]): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  if (!Array.isArray(data)) {
+    errors.push('Daten sind kein Array');
+    return { valid: false, errors };
+  }
+  
+  if (data.length !== 8760) {
+    errors.push(`Falsche Anzahl Datenpunkte: ${data.length} (erwartet: 8760)`);
+  }
+  
+  const invalidValues = data.filter(v => !Number.isFinite(v) || v < 0);
+  if (invalidValues.length > 0) {
+    errors.push(`${invalidValues.length} ungültige Werte gefunden`);
+  }
+  
+  const sum = data.reduce((a, b) => a + b, 0);
+  if (sum <= 0) {
+    errors.push('Summe aller Werte ist 0 oder negativ');
+  }
+  
+  // Plausibilitätsprüfung: Jahresverbrauch zwischen 500 und 50000 kWh
+  if (sum < 500 || sum > 50000) {
+    errors.push(`Jahresverbrauch ${Math.round(sum)} kWh erscheint unplausibel (500-50000 kWh erwartet)`);
+  }
+  
+  return { valid: errors.length === 0, errors };
+}
+
+/* -------------------- Hybrid Autarkie/Eigenverbrauch Berechnung -------------------- */
+
+// Generiere vereinfachte PV-Profile (24h, normalisiert)
+function generateSimplePVProfile(): number[] {
+  const profile = new Array(24).fill(0);
+  for (let h = 0; h < 24; h++) {
+    if (h >= 6 && h <= 18) {
+      // Sinus-Kurve zwischen 6 und 18 Uhr
+      const x = (h - 6) / 12; // 0 bis 1
+      profile[h] = Math.pow(Math.sin(Math.PI * x), 2);
+    }
+  }
+  // Normalisieren auf Summe = 1
+  const sum = profile.reduce((a, b) => a + b, 0);
+  return profile.map(v => v / sum);
+}
+
+// Generiere vereinfachte Haushalts-Profile (24h, normalisiert)
+function generateSimpleHouseholdProfile(): number[] {
+  const profile = new Array(24).fill(0);
+  
+  // Morgen-Peak (6-9 Uhr)
+  for (let h = 6; h <= 9; h++) {
+    profile[h] = 0.06;
+  }
+  
+  // Mittag (10-16 Uhr) - niedriger
+  for (let h = 10; h <= 16; h++) {
+    profile[h] = 0.035;
+  }
+  
+  // Abend-Peak (17-22 Uhr)
+  for (let h = 17; h <= 22; h++) {
+    profile[h] = 0.07;
+  }
+  
+  // Nacht (23-5 Uhr) - Grundlast
+  for (let h = 23; h <= 23; h++) profile[h] = 0.025;
+  for (let h = 0; h <= 5; h++) profile[h] = 0.025;
+  
+  // Normalisieren auf Summe = 1
+  const sum = profile.reduce((a, b) => a + b, 0);
+  return profile.map(v => v / sum);
+}
+
+// Generiere ausgewogene PV-optimierte EV-Profile (24h, normalisiert)
+function generateBalancedEVProfile(): number[] {
+  const profile = new Array(24).fill(0);
+  
+  // Ausgewogene Ladung zwischen PV-Nutzung und praktischen Zeiten:
+  // 1. PV-Überschuss-Ladung (11-15 Uhr) - 40%
+  for (let h = 11; h <= 15; h++) {
+    profile[h] = 0.08; // 5 Stunden * 0.08 = 0.40 (40%)
+  }
+  
+  // 2. Abendladung (19-22 Uhr) - 35%
+  for (let h = 19; h <= 22; h++) {
+    profile[h] = 0.0875; // 4 Stunden * 0.0875 = 0.35 (35%)
+  }
+  
+  // 3. Nachtladung (23-6 Uhr) - 25%
+  for (let h = 23; h <= 23; h++) profile[h] = 0.03125;
+  for (let h = 0; h <= 6; h++) profile[h] = 0.03125; // 8 Stunden * 0.03125 = 0.25 (25%)
+  
+  // Normalisieren auf Summe = 1
+  const sum = profile.reduce((a, b) => a + b, 0);
+  return profile.map(v => v / sum);
+}
+
+// Generiere vereinfachte EV-Profile (24h, normalisiert) - Legacy für Fallback
+function generateSimpleEVProfile(): number[] {
+  const profile = new Array(24).fill(0);
+  
+  // Hauptsächlich nachts laden (22-6 Uhr)
+  for (let h = 22; h <= 23; h++) profile[h] = 0.15;
+  for (let h = 0; h <= 6; h++) profile[h] = 0.15;
+  
+  // Etwas mittags (11-14 Uhr)
+  for (let h = 11; h <= 14; h++) profile[h] = 0.05;
+  
+  // Normalisieren auf Summe = 1
+  const sum = profile.reduce((a, b) => a + b, 0);
+  return profile.map(v => v / sum);
+}
+
+// Generiere vereinfachte Wärmepumpen-Profile (24h, normalisiert)
+function generateSimpleHeatPumpProfile(): number[] {
+  const profile = new Array(24).fill(0);
+  
+  // Gleichmäßiger über den Tag, etwas mehr morgens und abends
+  for (let h = 0; h < 24; h++) {
+    if (h >= 6 && h <= 9) {
+      profile[h] = 0.05; // Morgen-Peak
+    } else if (h >= 17 && h <= 22) {
+      profile[h] = 0.05; // Abend-Peak
+    } else {
+      profile[h] = 0.035; // Grundlast
+    }
+  }
+  
+  // Normalisieren auf Summe = 1
+  const sum = profile.reduce((a, b) => a + b, 0);
+  return profile.map(v => v / sum);
+}
+
+// Simuliere einen Tag mit Batterie-Dispatch
+function simulateDay(
+  pvHourly: number[],
+  householdHourly: number[],
+  evHourly: number[],
+  heatPumpHourly: number[],
+  batteryKWh: number
+): { autarky: number; selfConsumption: number } {
+  
+  let batterySOC = batteryKWh * 0.5; // Start bei 50%
+  let totalConsumption = 0;
+  let totalPV = 0;
+  let totalGridImport = 0;
+  let totalSelfConsumption = 0;
+  
+  for (let hour = 0; hour < 24; hour++) {
+    const pv = pvHourly[hour];
+    const consumption = householdHourly[hour] + evHourly[hour] + heatPumpHourly[hour];
+    
+    totalPV += pv;
+    totalConsumption += consumption;
+    
+    // Direktverbrauch
+    const directUse = Math.min(pv, consumption);
+    let remainingPV = pv - directUse;
+    let remainingConsumption = consumption - directUse;
+    
+    // Batterie laden
+    if (remainingPV > 0 && batteryKWh > 0) {
+      const maxChargeRate = batteryKWh * 0.5; // Max 0.5C
+      const chargeAmount = Math.min(remainingPV, batteryKWh - batterySOC, maxChargeRate);
+      batterySOC += chargeAmount * 0.95; // 95% Ladeeffizienz
+      remainingPV -= chargeAmount;
+    }
+    
+    // Batterie entladen
+    if (remainingConsumption > 0 && batteryKWh > 0) {
+      const maxDischargeRate = batteryKWh * 0.5; // Max 0.5C
+      const dischargeAmount = Math.min(remainingConsumption, batterySOC, maxDischargeRate);
+      batterySOC -= dischargeAmount;
+      const usableDischarge = dischargeAmount * 0.95; // 95% Entladeeffizienz
+      remainingConsumption -= usableDischarge;
+      totalSelfConsumption += usableDischarge;
+    }
+    
+    totalGridImport += remainingConsumption;
+    totalSelfConsumption += directUse;
+  }
+  
+  const autarky = totalConsumption > 0 ? 1 - (totalGridImport / totalConsumption) : 0;
+  const selfConsumption = totalPV > 0 ? totalSelfConsumption / totalPV : 0;
+  
+  return { autarky, selfConsumption };
+}
+
+// Hauptfunktion: Hybrid-Berechnung von Autarkie und Eigenverbrauch
+export function calculateHybridMetrics(
+  annualPV: number,
+  annualConsumption: number,
+  batteryKWh: number,
+  evConsumption: number,
+  heatPumpConsumption: number
+): { autarky: number; selfConsumption: number } {
+  
+  // 1. Generiere optimierte Tagesprofile (24h)
+  const pvProfile = generateSimplePVProfile();
+  const householdProfile = generateSimpleHouseholdProfile();
+  const evProfile = generateSimpleEVProfile(); // Verwende einfache EV-Ladung
+  const heatPumpProfile = generateSimpleHeatPumpProfile();
+  
+  // 2. Skaliere auf Jahreswerte
+  const dailyPV = annualPV / 365;
+  const dailyHousehold = annualConsumption / 365;
+  const dailyEV = evConsumption / 365;
+  const dailyHeatPump = heatPumpConsumption / 365;
+  
+  // 3. Simuliere repräsentativen Tag für jede Jahreszeit
+  const seasons = [
+    { pvFactor: 0.4, name: 'Winter' },
+    { pvFactor: 0.8, name: 'Frühling' },
+    { pvFactor: 1.4, name: 'Sommer' },
+    { pvFactor: 1.0, name: 'Herbst' }
+  ];
+  
+  let totalAutarky = 0;
+  let totalSelfConsumption = 0;
+  
+  for (const season of seasons) {
+    const seasonResult = simulateDay(
+      pvProfile.map(h => h * dailyPV * season.pvFactor),
+      householdProfile.map(h => h * dailyHousehold),
+      evProfile.map(h => h * dailyEV),
+      heatPumpProfile.map(h => h * dailyHeatPump),
+      batteryKWh
+    );
+    
+    totalAutarky += seasonResult.autarky;
+    totalSelfConsumption += seasonResult.selfConsumption;
+  }
+  
+  return {
+    autarky: Math.min(0.95, totalAutarky / 4), // Max 95% Autarkie
+    selfConsumption: Math.min(0.95, totalSelfConsumption / 4) // Max 95% Eigenverbrauch
   };
 }
