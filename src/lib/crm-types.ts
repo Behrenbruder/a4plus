@@ -66,7 +66,7 @@ export interface ContactHistory {
   next_action?: string;
   next_action_date?: string;
   attachments: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface Document {
@@ -106,8 +106,8 @@ export interface Project {
   margin_percent?: number;
   address?: string;
   coordinates?: { x: number; y: number };
-  technical_specs: Record<string, any>;
-  materials_list: Record<string, any>;
+  technical_specs: Record<string, unknown>;
+  materials_list: Record<string, unknown>;
   labor_hours?: number;
   notes?: string;
 }
@@ -159,7 +159,7 @@ export interface Subsidy {
   application_url?: string;
   is_active: boolean;
   postal_codes: string[];
-  income_limits: Record<string, any>;
+  income_limits: Record<string, unknown>;
 }
 
 export interface CustomerSubsidy {
@@ -188,7 +188,7 @@ export interface Notification {
   message?: string;
   is_read: boolean;
   action_url?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface AutomationRule {
@@ -199,7 +199,7 @@ export interface AutomationRule {
   description?: string;
   is_active: boolean;
   trigger_type: AutomationTrigger;
-  trigger_conditions: Record<string, any>;
+  trigger_conditions: Record<string, unknown>;
   actions: AutomationAction[];
   delay_hours: number;
   created_by?: string;
@@ -210,7 +210,7 @@ export interface AutomationAction {
   template?: string;
   message?: string;
   recipient?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export interface MarketingCampaign {
@@ -221,7 +221,7 @@ export interface MarketingCampaign {
   description?: string;
   campaign_type: 'email' | 'sms' | 'newsletter' | 'social_media';
   status: 'entwurf' | 'geplant' | 'aktiv' | 'pausiert' | 'beendet';
-  target_audience: Record<string, any>;
+  target_audience: Record<string, unknown>;
   content?: string;
   scheduled_date?: string;
   sent_date?: string;
@@ -259,7 +259,7 @@ export interface KPIMetric {
   metric_value: number;
   metric_date: string;
   period_type: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 // Dashboard and Analytics Types
@@ -393,8 +393,8 @@ export interface ProjectFormData {
   planned_end_date?: string;
   estimated_cost?: number;
   address?: string;
-  technical_specs: Record<string, any>;
-  materials_list: Record<string, any>;
+  technical_specs: Record<string, unknown>;
+  materials_list: Record<string, unknown>;
   labor_hours?: number;
   notes?: string;
 }

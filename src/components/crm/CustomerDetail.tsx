@@ -17,8 +17,6 @@ import {
   EyeIcon,
   ArrowLeftIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon,
-  ClockIcon,
   TagIcon
 } from '@heroicons/react/24/outline';
 import { Customer, ContactHistory, Project, Quote, Document, ProductInterest } from '../../lib/crm-types';
@@ -68,7 +66,7 @@ const mockContactHistory: ContactHistory[] = [
     content: 'Kunde hat nach einem detaillierten Angebot für eine 10kWp PV-Anlage mit Speicher gefragt.',
     direction: 'inbound',
     attachments: [],
-    metadata: {}
+    metadata: {} as Record<string, unknown>
   },
   {
     id: '2',
@@ -81,7 +79,7 @@ const mockContactHistory: ContactHistory[] = [
     direction: 'outbound',
     duration_minutes: 30,
     attachments: [],
-    metadata: {}
+    metadata: {} as Record<string, unknown>
   },
   {
     id: '3',
@@ -94,7 +92,7 @@ const mockContactHistory: ContactHistory[] = [
     direction: 'outbound',
     duration_minutes: 120,
     attachments: [],
-    metadata: {}
+    metadata: {} as Record<string, unknown>
   }
 ];
 
@@ -113,8 +111,8 @@ const mockProjects: Project[] = [
     start_date: '2025-02-01',
     planned_end_date: '2025-02-15',
     estimated_cost: 25000,
-    technical_specs: {},
-    materials_list: {}
+    technical_specs: {} as Record<string, unknown>,
+    materials_list: {} as Record<string, unknown>
   }
 ];
 
@@ -345,7 +343,7 @@ export default function CustomerDetail({ customerId, onBack, onEdit }: CustomerD
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'overview' | 'contact' | 'projects' | 'documents')}
               className={`${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
