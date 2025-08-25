@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Konvertiere Prisma-Daten für Frontend-Kompatibilität
-    const convertedData = data.map((quote: any) => ({
+    const convertedData = data.map((quote: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
       id: quote.id,
       firstName: quote.firstName,
       lastName: quote.lastName,

@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     ])
 
     // Convert Prisma data to match expected format
-    const convertedData = data.map((customer: any) => ({
+    const convertedData = data.map((customer: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
       id: customer.id,
       first_name: customer.firstName,
       last_name: customer.lastName,
