@@ -493,3 +493,69 @@ export interface WebhookConfig {
   secret?: string;
   headers?: Record<string, string>;
 }
+
+// PV-Quotes Integration Types
+export type PVQuoteStatus = 'new' | 'contacted' | 'quoted' | 'converted' | 'declined';
+
+export interface RoofFace {
+  id: string;
+  area: number;
+  tilt: number;
+  azimuth: number;
+  modules: number;
+  kwp: number;
+}
+
+export interface PVQuote {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  
+  // Kundendaten
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  
+  // PV-Rechner Daten
+  roof_type?: string;
+  roof_tilt_deg?: number;
+  annual_consumption_kwh?: number;
+  electricity_price_ct_per_kwh?: number;
+  
+  // Dachflächen
+  roof_faces?: RoofFace[];
+  
+  // System-Konfiguration
+  total_kwp?: number;
+  annual_pv_kwh?: number;
+  battery_kwh?: number;
+  
+  // E-Auto Daten
+  ev_km_per_year?: number;
+  ev_kwh_per_100km?: number;
+  ev_home_charging_share?: number;
+  ev_charger_power_kw?: number;
+  
+  // Wärmepumpe
+  heat_pump_consumption_kwh?: number;
+  
+  // Berechnungsergebnisse
+  autarkie_pct?: number;
+  eigenverbrauch_pct?: number;
+  annual_savings_eur?: number;
+  co2_savings_tons?: number;
+  payback_time_years?: number;
+  
+  // Status
+  status: PVQuoteStatus;
+  notes?: string;
+}
+
+// Extended Customer type with PV quotes
+export type CustomerWithPVQuotes = Customer & {
+  pv_quotes?: PVQuote[];
+};

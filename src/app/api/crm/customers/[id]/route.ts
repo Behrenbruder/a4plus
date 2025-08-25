@@ -59,7 +59,20 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ data });
+    // Fetch related PV quotes based on email address
+    const { data: pvQuotes } = await supabase
+      .from('pv_quotes')
+      .select('*')
+      .eq('email', data.email)
+      .order('created_at', { ascending: false });
+
+    // Add PV quotes to customer data
+    const customerWithPVQuotes = {
+      ...data,
+      pv_quotes: pvQuotes || []
+    };
+
+    return NextResponse.json({ data: customerWithPVQuotes });
 
   } catch (error) {
     console.error('Unexpected error:', error);

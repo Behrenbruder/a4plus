@@ -19,7 +19,7 @@ import {
   ExclamationTriangleIcon,
   TagIcon
 } from '@heroicons/react/24/outline';
-import { Customer, ContactHistory, Project, Quote, Document, ProductInterest } from '../../lib/crm-types';
+import { Customer, ContactHistory, Project, Quote, Document, ProductInterest, PVQuote, CustomerWithPVQuotes } from '../../lib/crm-types';
 
 interface CustomerDetailProps {
   customerId: string;
@@ -214,7 +214,7 @@ const getContactTypeIcon = (type: string) => {
 };
 
 export default function CustomerDetail({ customerId, onBack, onEdit }: CustomerDetailProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'contact' | 'projects' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'contact' | 'projects' | 'documents' | 'pv-quotes'>('overview');
   const [showNewContactForm, setShowNewContactForm] = useState(false);
   const [newContact, setNewContact] = useState({
     type: 'email',
@@ -339,11 +339,12 @@ export default function CustomerDetail({ customerId, onBack, onEdit }: CustomerD
             { id: 'overview', name: 'Übersicht', icon: UserIcon },
             { id: 'contact', name: 'Kontaktverlauf', icon: ChatBubbleLeftRightIcon },
             { id: 'projects', name: 'Projekte', icon: DocumentTextIcon },
-            { id: 'documents', name: 'Dokumente', icon: DocumentTextIcon }
+            { id: 'documents', name: 'Dokumente', icon: DocumentTextIcon },
+            { id: 'pv-quotes', name: 'PV-Anfragen', icon: ChartBarIcon }
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'overview' | 'contact' | 'projects' | 'documents')}
+              onClick={() => setActiveTab(tab.id as 'overview' | 'contact' | 'projects' | 'documents' | 'pv-quotes')}
               className={`${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
@@ -633,6 +634,146 @@ export default function CustomerDetail({ customerId, onBack, onEdit }: CustomerD
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'pv-quotes' && (
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900">PV-Rechner Anfragen</h3>
+              <div className="text-sm text-gray-500">
+                Automatisch verknüpft über E-Mail-Adresse
+              </div>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-200">
+            {/* Mock PV Quotes - In real app, these would come from the API */}
+            {[
+              {
+                id: '1',
+                created_at: '2025-01-20T14:30:00Z',
+                total_kwp: 9.6,
+                annual_pv_kwh: 9200,
+                battery_kwh: 10,
+                annual_consumption_kwh: 4500,
+                autarkie_pct: 85,
+                eigenverbrauch_pct: 78,
+                annual_savings_eur: 1850,
+                payback_time_years: 8.5,
+                status: 'new',
+                roof_type: 'Satteldach',
+                address: 'Musterstraße 123, 12345 Musterstadt'
+              },
+              {
+                id: '2',
+                created_at: '2025-01-15T10:15:00Z',
+                total_kwp: 12.0,
+                annual_pv_kwh: 11500,
+                battery_kwh: 15,
+                annual_consumption_kwh: 5200,
+                autarkie_pct: 92,
+                eigenverbrauch_pct: 82,
+                annual_savings_eur: 2150,
+                payback_time_years: 7.8,
+                status: 'contacted',
+                roof_type: 'Flachdach',
+                address: 'Musterstraße 123, 12345 Musterstadt'
+              }
+            ].map((pvQuote) => (
+              <div key={pvQuote.id} className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-medium text-gray-900">
+                        PV-Anlage {pvQuote.total_kwp} kWp
+                      </h4>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          pvQuote.status === 'new' ? 'bg-blue-100 text-blue-800' :
+                          pvQuote.status === 'contacted' ? 'bg-yellow-100 text-yellow-800' :
+                          pvQuote.status === 'quoted' ? 'bg-purple-100 text-purple-800' :
+                          pvQuote.status === 'converted' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {pvQuote.status === 'new' ? 'Neu' :
+                           pvQuote.status === 'contacted' ? 'Kontaktiert' :
+                           pvQuote.status === 'quoted' ? 'Angebot erstellt' :
+                           pvQuote.status === 'converted' ? 'Konvertiert' : 'Abgelehnt'}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {formatDate(pvQuote.created_at)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-xs text-gray-500 mb-1">Anlagenleistung</p>
+                        <p className="text-sm font-semibold text-gray-900">{pvQuote.total_kwp} kWp</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-xs text-gray-500 mb-1">Jahresertrag</p>
+                        <p className="text-sm font-semibold text-gray-900">{pvQuote.annual_pv_kwh?.toLocaleString()} kWh</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-xs text-gray-500 mb-1">Speicher</p>
+                        <p className="text-sm font-semibold text-gray-900">{pvQuote.battery_kwh} kWh</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-xs text-gray-500 mb-1">Verbrauch</p>
+                        <p className="text-sm font-semibold text-gray-900">{pvQuote.annual_consumption_kwh?.toLocaleString()} kWh</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <p className="text-xs text-green-600 mb-1">Autarkiegrad</p>
+                        <p className="text-sm font-semibold text-green-800">{pvQuote.autarkie_pct}%</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-xs text-blue-600 mb-1">Eigenverbrauch</p>
+                        <p className="text-sm font-semibold text-blue-800">{pvQuote.eigenverbrauch_pct}%</p>
+                      </div>
+                      <div className="bg-yellow-50 p-3 rounded-lg">
+                        <p className="text-xs text-yellow-600 mb-1">Jährl. Ersparnis</p>
+                        <p className="text-sm font-semibold text-yellow-800">{formatCurrency(pvQuote.annual_savings_eur || 0)}</p>
+                      </div>
+                      <div className="bg-purple-50 p-3 rounded-lg">
+                        <p className="text-xs text-purple-600 mb-1">Amortisation</p>
+                        <p className="text-sm font-semibold text-purple-800">{pvQuote.payback_time_years} Jahre</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <span>📍 {pvQuote.address}</span>
+                      <span>🏠 {pvQuote.roof_type}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 ml-4">
+                    <button className="text-blue-600 hover:text-blue-800 p-2">
+                      <EyeIcon className="h-4 w-4" />
+                    </button>
+                    <button className="text-green-600 hover:text-green-800 p-2" title="Als Kunde konvertieren">
+                      <UserIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {/* Empty state if no PV quotes */}
+            {false && (
+              <div className="p-12 text-center">
+                <ChartBarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Keine PV-Anfragen gefunden</h3>
+                <p className="text-gray-500">
+                  Für diese E-Mail-Adresse wurden noch keine PV-Rechner Anfragen erstellt.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
