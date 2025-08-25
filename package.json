@@ -10,6 +10,7 @@
     "postinstall": "npx prisma generate"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.13.0",
     "@react-google-maps/api": "^2.20.7",
     "@supabase/ssr": "^0.7.0",
