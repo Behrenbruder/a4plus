@@ -98,11 +98,11 @@ export async function POST(request: NextRequest) {
         first_name: insertedData.firstName,
         last_name: insertedData.lastName,
         email: insertedData.email,
-        phone: insertedData.phone,
-        city: insertedData.city,
-        total_kwp: insertedData.totalKwp,
-        autarkie_pct: insertedData.autarkiePct,
-        annual_savings_eur: insertedData.annualSavingsEur,
+        phone: insertedData.phone ?? undefined,
+        city: insertedData.city ?? undefined,
+        total_kwp: insertedData.totalKwp ?? undefined,
+        autarkie_pct: insertedData.autarkiePct ?? undefined,
+        annual_savings_eur: insertedData.annualSavingsEur ?? undefined,
         created_at: insertedData.createdAt.toISOString()
       };
       
