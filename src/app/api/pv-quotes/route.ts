@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendNotificationEmail } from '@/lib/email-notifications';
-import { PrismaClient } from '@prisma/client';
+import { createClient } from '@supabase/supabase-js';
 
-const prisma = new PrismaClient();
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function POST(request: NextRequest) {
   // Cloudflare-freundliche Headers setzen
@@ -29,81 +30,104 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Speichere in der lokalen Prisma-Datenbank
-    const prismaData = {
-      firstName: data.firstName,
-      lastName: data.lastName,
+    // Prüfe Umgebungsvariablen
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: 'Datenbank-Konfiguration fehlt' },
+        { status: 500, headers }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Speichere in Supabase
+    const supabaseData = {
+      first_name: data.firstName,
+      last_name: data.lastName,
       email: data.email,
       phone: data.phone || null,
-      address: data.address || null,
+      street: data.address || null,
       city: data.city || null,
-      postalCode: data.postalCode || null,
+      postal_code: data.postalCode || null,
       
       // Grundlegende PV-Rechner Eingabedaten
-      annualConsumptionKwh: data.pvData?.annualConsumption || null,
-      electricityPriceCtPerKwh: data.pvData?.electricityPrice || null,
+      annual_consumption_kwh: data.pvData?.annualConsumption || null,
+      electricity_price_ct_per_kwh: data.pvData?.electricityPrice || null,
       
       // Detaillierte Dachflächen-Informationen (JSON String mit allen Details)
-      roofFaces: data.pvData?.roofFaces && data.pvData.roofFaces.length > 0 ? JSON.stringify(data.pvData.roofFaces) : null,
+      roof_faces: data.pvData?.roofFaces && data.pvData.roofFaces.length > 0 ? JSON.stringify(data.pvData.roofFaces) : null,
       
       // System-Konfiguration und Berechnungen
-      totalKwp: data.pvData?.totalKwp || null,
-      estimatedTotalModules: data.pvData?.estimatedTotalModules || null,
-      annualPvKwh: data.pvData?.annualPvProduction || null,
+      total_kwp: data.pvData?.totalKwp || null,
+      estimated_total_modules: data.pvData?.estimatedTotalModules || null,
+      annual_pv_kwh: data.pvData?.annualPvProduction || null,
       
       // Speicher
-      batteryKwh: data.pvData?.batteryKwh || null,
+      battery_kwh: data.pvData?.batteryKwh || null,
       
       // E-Auto Daten (alle EV-Daten)
-      evKmPerYear: data.pvData?.evData?.kmPerYear || null,
-      evKwhPer100km: data.pvData?.evData?.kWhPer100km || null,
-      evHomeChargingShare: data.pvData?.evData?.homeChargingShare || null,
-      evChargerPowerKw: data.pvData?.evData?.chargerPowerKW || null,
-      evAnnualConsumptionKwh: data.pvData?.evData?.annualConsumption || null,
+      ev_km_per_year: data.pvData?.evData?.kmPerYear || null,
+      ev_kwh_per_100km: data.pvData?.evData?.kWhPer100km || null,
+      ev_home_charging_share: data.pvData?.evData?.homeChargingShare || null,
+      ev_charger_power_kw: data.pvData?.evData?.chargerPowerKW || null,
+      ev_annual_consumption_kwh: data.pvData?.evData?.annualConsumption || null,
       
       // Wärmepumpe
-      heatPumpConsumptionKwh: data.pvData?.heatPumpConsumption || null,
+      heat_pump_consumption_kwh: data.pvData?.heatPumpConsumption || null,
       
       // Berechnungsergebnisse (behalten für Übersicht)
-      autarkiePct: data.pvData?.autarkiePct || null,
-      eigenverbrauchPct: data.pvData?.eigenverbrauchPct || null,
-      annualSavingsEur: data.pvData?.annualSavingsEur || null,
-      co2SavingsTons: data.pvData?.co2Savings || null,
-      paybackTimeYears: data.pvData?.paybackTime || null,
+      autarkie_pct: data.pvData?.autarkiePct || null,
+      eigenverbrauch_pct: data.pvData?.eigenverbrauchPct || null,
+      annual_savings_eur: data.pvData?.annualSavingsEur || null,
+      co2_savings_tons: data.pvData?.co2Savings || null,
+      payback_time_years: data.pvData?.paybackTime || null,
       
       // Zusätzliche technische Details
-      roofType: data.pvData?.roofType || null,
-      totalRoofArea: data.pvData?.totalRoofArea || null,
-      usableRoofArea: data.pvData?.usableRoofArea || null,
-      averageGti: data.pvData?.averageGti || null,
-      averageOrientation: data.pvData?.averageOrientation || null,
-      averageTilt: data.pvData?.averageTilt || null,
+      roof_type: data.pvData?.roofType || null,
+      total_roof_area: data.pvData?.totalRoofArea || null,
+      usable_roof_area: data.pvData?.usableRoofArea || null,
+      average_gti: data.pvData?.averageGti || null,
+      average_orientation: data.pvData?.averageOrientation || null,
+      average_tilt: data.pvData?.averageTilt || null,
       
       status: 'new'
     };
 
-    console.log('Prepared quote data:', JSON.stringify(prismaData, null, 2));
+    console.log('Prepared quote data:', JSON.stringify(supabaseData, null, 2));
 
-    const insertedData = await prisma.pvQuote.create({
-      data: prismaData
-    });
+    const { data: insertedData, error: insertError } = await supabase
+      .from('pv_quotes')
+      .insert([supabaseData])
+      .select()
+      .single();
 
-    console.log('Successfully saved to Prisma database:', insertedData.id);
+    if (insertError) {
+      console.error('Supabase insert error:', insertError);
+      return NextResponse.json(
+        { 
+          error: 'Fehler beim Speichern der Daten',
+          details: process.env.NODE_ENV === 'development' ? insertError.message : undefined
+        },
+        { status: 500, headers }
+      );
+    }
+
+    console.log('Successfully saved to Supabase:', insertedData.id);
 
     // E-Mail-Benachrichtigung senden
     try {
-      // Konvertiere Prisma-Daten für E-Mail-Funktion
+      // Konvertiere Supabase-Daten für E-Mail-Funktion
       const emailData = {
         id: insertedData.id.toString(),
-        first_name: insertedData.firstName,
-        last_name: insertedData.lastName,
+        first_name: insertedData.first_name,
+        last_name: insertedData.last_name,
         email: insertedData.email,
         phone: insertedData.phone ?? undefined,
         city: insertedData.city ?? undefined,
-        total_kwp: insertedData.totalKwp ?? undefined,
-        autarkie_pct: insertedData.autarkiePct ?? undefined,
-        annual_savings_eur: insertedData.annualSavingsEur ?? undefined,
-        created_at: insertedData.createdAt.toISOString()
+        total_kwp: insertedData.total_kwp ?? undefined,
+        autarkie_pct: insertedData.autarkie_pct ?? undefined,
+        annual_savings_eur: insertedData.annual_savings_eur ?? undefined,
+        created_at: insertedData.created_at
       };
       
       await sendNotificationEmail(emailData);
@@ -145,85 +169,102 @@ export async function OPTIONS() {
 
 export async function GET(request: NextRequest) {
   try {
+    // Prüfe Umgebungsvariablen
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: 'Datenbank-Konfiguration fehlt' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status');
     
-    // Baue Prisma-Query
-    const where = status ? { status } : {};
-    
-    const [data, total] = await Promise.all([
-      prisma.pvQuote.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.pvQuote.count({ where })
-    ]);
+    // Baue Supabase-Query
+    let query = supabase
+      .from('pv_quotes')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1);
 
-    // Konvertiere Prisma-Daten für Frontend-Kompatibilität
-    const convertedData = data.map((quote: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('Supabase query error:', error);
+      return NextResponse.json(
+        { error: 'Fehler beim Laden der Daten' },
+        { status: 500 }
+      );
+    }
+
+    // Konvertiere Supabase-Daten für Frontend-Kompatibilität
+    const convertedData = data?.map((quote: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
       id: quote.id,
-      firstName: quote.firstName,
-      lastName: quote.lastName,
-      first_name: quote.firstName,
-      last_name: quote.lastName,
+      firstName: quote.first_name,
+      lastName: quote.last_name,
+      first_name: quote.first_name,
+      last_name: quote.last_name,
       email: quote.email,
       phone: quote.phone,
-      street: quote.address,
+      street: quote.street,
       city: quote.city,
-      postalCode: quote.postalCode,
+      postalCode: quote.postal_code,
       
       // Comprehensive PV data
-      annualConsumptionKwh: quote.annualConsumptionKwh,
-      electricityPriceCtPerKwh: quote.electricityPriceCtPerKwh,
-      totalKwp: quote.totalKwp,
-      total_kwp: quote.totalKwp,
-      estimatedTotalModules: quote.estimatedTotalModules,
-      annualPvKwh: quote.annualPvKwh,
-      batteryKwh: quote.batteryKwh,
+      annualConsumptionKwh: quote.annual_consumption_kwh,
+      electricityPriceCtPerKwh: quote.electricity_price_ct_per_kwh,
+      totalKwp: quote.total_kwp,
+      total_kwp: quote.total_kwp,
+      estimatedTotalModules: quote.estimated_total_modules,
+      annualPvKwh: quote.annual_pv_kwh,
+      batteryKwh: quote.battery_kwh,
       
       // EV data
-      evKmPerYear: quote.evKmPerYear,
-      evKwhPer100km: quote.evKwhPer100km,
-      evHomeChargingShare: quote.evHomeChargingShare,
-      evChargerPowerKw: quote.evChargerPowerKw,
-      evAnnualConsumptionKwh: quote.evAnnualConsumptionKwh,
+      evKmPerYear: quote.ev_km_per_year,
+      evKwhPer100km: quote.ev_kwh_per_100km,
+      evHomeChargingShare: quote.ev_home_charging_share,
+      evChargerPowerKw: quote.ev_charger_power_kw,
+      evAnnualConsumptionKwh: quote.ev_annual_consumption_kwh,
       
       // Heat pump
-      heatPumpConsumptionKwh: quote.heatPumpConsumptionKwh,
+      heatPumpConsumptionKwh: quote.heat_pump_consumption_kwh,
       
       // Results
-      autarkiePct: quote.autarkiePct,
-      autarkie_pct: quote.autarkiePct,
-      eigenverbrauchPct: quote.eigenverbrauchPct,
-      annualSavingsEur: quote.annualSavingsEur,
-      annual_savings_eur: quote.annualSavingsEur,
-      co2SavingsTons: quote.co2SavingsTons,
-      paybackTimeYears: quote.paybackTimeYears,
+      autarkiePct: quote.autarkie_pct,
+      autarkie_pct: quote.autarkie_pct,
+      eigenverbrauchPct: quote.eigenverbrauch_pct,
+      annualSavingsEur: quote.annual_savings_eur,
+      annual_savings_eur: quote.annual_savings_eur,
+      co2SavingsTons: quote.co2_savings_tons,
+      paybackTimeYears: quote.payback_time_years,
       
       // Roof data
-      roofFaces: quote.roofFaces,
-      roofType: quote.roofType,
-      totalRoofArea: quote.totalRoofArea,
-      usableRoofArea: quote.usableRoofArea,
-      averageGti: quote.averageGti,
-      averageOrientation: quote.averageOrientation,
-      averageTilt: quote.averageTilt,
+      roofFaces: quote.roof_faces,
+      roofType: quote.roof_type,
+      totalRoofArea: quote.total_roof_area,
+      usableRoofArea: quote.usable_roof_area,
+      averageGti: quote.average_gti,
+      averageOrientation: quote.average_orientation,
+      averageTilt: quote.average_tilt,
       
       status: quote.status,
-      created_at: quote.createdAt
-    }));
+      created_at: quote.created_at
+    })) || [];
 
     return NextResponse.json({
       data: convertedData,
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit)
+        total: count || 0,
+        pages: Math.ceil((count || 0) / limit)
       }
     }, {
       headers: {

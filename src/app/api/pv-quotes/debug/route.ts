@@ -48,8 +48,7 @@ export async function GET(request: NextRequest) {
     // Teste Datenbankverbindung
     const { data: testData, error: testError } = await supabase
       .from('pv_quotes')
-      .select('count(*)')
-      .limit(1);
+      .select('*', { count: 'exact', head: true });
 
     if (testError) {
       return NextResponse.json({
