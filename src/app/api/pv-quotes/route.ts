@@ -40,55 +40,47 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Speichere in Supabase
+    // Speichere in Supabase (nur Felder die in der DB existieren)
     const supabaseData = {
       first_name: data.firstName,
       last_name: data.lastName,
       email: data.email,
       phone: data.phone || null,
-      street: data.address || null,
+      address: data.address || null,
       city: data.city || null,
       postal_code: data.postalCode || null,
       
       // Grundlegende PV-Rechner Eingabedaten
+      roof_type: data.pvData?.roofType || null,
+      roof_tilt_deg: data.pvData?.roofTilt || null,
       annual_consumption_kwh: data.pvData?.annualConsumption || null,
       electricity_price_ct_per_kwh: data.pvData?.electricityPrice || null,
       
-      // Detaillierte Dachflächen-Informationen (JSON String mit allen Details)
-      roof_faces: data.pvData?.roofFaces && data.pvData.roofFaces.length > 0 ? JSON.stringify(data.pvData.roofFaces) : null,
+      // Detaillierte Dachflächen-Informationen (JSON)
+      roof_faces: data.pvData?.roofFaces && data.pvData.roofFaces.length > 0 ? data.pvData.roofFaces : null,
       
       // System-Konfiguration und Berechnungen
-      total_kwp: data.pvData?.totalKwp || null,
-      estimated_total_modules: data.pvData?.estimatedTotalModules || null,
-      annual_pv_kwh: data.pvData?.annualPvProduction || null,
+      total_kwp: data.pvData?.totalKWp || null,
+      annual_pv_kwh: data.pvData?.annualPV || null,
       
       // Speicher
-      battery_kwh: data.pvData?.batteryKwh || null,
+      battery_kwh: data.pvData?.batteryKWh || null,
       
-      // E-Auto Daten (alle EV-Daten)
+      // E-Auto Daten (nur die Felder die in der DB existieren)
       ev_km_per_year: data.pvData?.evData?.kmPerYear || null,
       ev_kwh_per_100km: data.pvData?.evData?.kWhPer100km || null,
       ev_home_charging_share: data.pvData?.evData?.homeChargingShare || null,
       ev_charger_power_kw: data.pvData?.evData?.chargerPowerKW || null,
-      ev_annual_consumption_kwh: data.pvData?.evData?.annualConsumption || null,
       
       // Wärmepumpe
       heat_pump_consumption_kwh: data.pvData?.heatPumpConsumption || null,
       
-      // Berechnungsergebnisse (behalten für Übersicht)
-      autarkie_pct: data.pvData?.autarkiePct || null,
-      eigenverbrauch_pct: data.pvData?.eigenverbrauchPct || null,
-      annual_savings_eur: data.pvData?.annualSavingsEur || null,
+      // Berechnungsergebnisse
+      autarkie_pct: data.pvData?.autarkie ? (data.pvData.autarkie * 100) : null,
+      eigenverbrauch_pct: data.pvData?.eigenverbrauch ? (data.pvData.eigenverbrauch * 100) : null,
+      annual_savings_eur: data.pvData?.annualSavings || null,
       co2_savings_tons: data.pvData?.co2Savings || null,
       payback_time_years: data.pvData?.paybackTime || null,
-      
-      // Zusätzliche technische Details
-      roof_type: data.pvData?.roofType || null,
-      total_roof_area: data.pvData?.totalRoofArea || null,
-      usable_roof_area: data.pvData?.usableRoofArea || null,
-      average_gti: data.pvData?.averageGti || null,
-      average_orientation: data.pvData?.averageOrientation || null,
-      average_tilt: data.pvData?.averageTilt || null,
       
       status: 'new'
     };
