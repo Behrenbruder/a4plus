@@ -8,6 +8,15 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(request: NextRequest) {
+  // Cloudflare-freundliche Headers setzen
+  const headers = {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
   try {
     // Prüfe Umgebungsvariablen
     if (!supabaseUrl || !supabaseServiceKey) {
@@ -17,7 +26,7 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json(
         { error: 'Server-Konfigurationsfehler' },
-        { status: 500 }
+        { status: 500, headers }
       );
     }
 
@@ -129,6 +138,19 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// OPTIONS Handler für CORS Preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }
 
 export async function GET(request: NextRequest) {
