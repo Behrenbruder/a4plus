@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     try {
       // Konvertiere Prisma-Daten für E-Mail-Funktion
       const emailData = {
-        id: insertedData.id,
+        id: insertedData.id.toString(),
         first_name: insertedData.firstName,
         last_name: insertedData.lastName,
         email: insertedData.email,
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         total_kwp: insertedData.totalKwp,
         autarkie_pct: insertedData.autarkiePct,
         annual_savings_eur: insertedData.annualSavingsEur,
-        created_at: insertedData.createdAt
+        created_at: insertedData.createdAt.toISOString()
       };
       
       await sendNotificationEmail(emailData);
