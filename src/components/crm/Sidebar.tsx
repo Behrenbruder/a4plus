@@ -195,29 +195,44 @@ export default function Sidebar({ userRole, userName, userEmail, onLogout, isCol
     const active = isActive(item.href)
     const filteredChildren = item.children?.filter(child => child.roles.includes(userRole))
 
+    // Don't render child items when sidebar is collapsed
+    if (isCollapsed && level > 0) {
+      return null
+    }
+
     return (
-      <div key={item.name}>
+      <div key={item.name} className="relative group">
         <div className="flex items-center">
           <Link
             href={item.href}
             className={`
-              flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors
-              ${level > 0 ? 'ml-6' : ''}
+              flex items-center w-full text-sm font-medium rounded-md transition-colors relative
+              ${isCollapsed ? 'px-2 py-3 justify-center' : `px-3 py-2 ${level > 0 ? 'ml-6' : ''}`}
               ${active 
                 ? 'bg-emerald-100 text-emerald-900 border-r-2 border-emerald-500' 
                 : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
               }
             `}
+            title={isCollapsed ? item.name : undefined}
           >
-            <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-            <span className="flex-1">{item.name}</span>
-            {item.badge && (
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <item.icon className={`h-5 w-5 flex-shrink-0 ${isCollapsed ? '' : 'mr-3'}`} />
+            {!isCollapsed && (
+              <>
+                <span className="flex-1">{item.name}</span>
+                {item.badge && (
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    {item.badge}
+                  </span>
+                )}
+              </>
+            )}
+            {isCollapsed && item.badge && (
+              <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white min-w-[18px] h-[18px]">
                 {item.badge}
               </span>
             )}
           </Link>
-          {hasChildren && filteredChildren && filteredChildren.length > 0 && (
+          {hasChildren && filteredChildren && filteredChildren.length > 0 && !isCollapsed && (
             <button
               onClick={() => toggleExpanded(item.name)}
               className="p-1 ml-1 rounded hover:bg-gray-100"
@@ -233,7 +248,24 @@ export default function Sidebar({ userRole, userName, userEmail, onLogout, isCol
             </button>
           )}
         </div>
-        {hasChildren && isExpanded && filteredChildren && (
+        
+        {/* Tooltip for collapsed state */}
+        {isCollapsed && (
+          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 top-1/2 transform -translate-y-1/2">
+            {item.name}
+            {hasChildren && filteredChildren && filteredChildren.length > 0 && (
+              <div className="mt-1 pt-1 border-t border-gray-700">
+                {filteredChildren.map(child => (
+                  <div key={child.name} className="py-0.5">
+                    {child.name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        
+        {hasChildren && isExpanded && filteredChildren && !isCollapsed && (
           <div className="mt-1 space-y-1">
             {filteredChildren.map(child => renderNavigationItem(child, level + 1))}
           </div>
@@ -259,16 +291,26 @@ export default function Sidebar({ userRole, userName, userEmail, onLogout, isCol
       </div>
 
       {/* Desktop collapse button */}
-      <div className="hidden lg:block fixed top-4 z-50 transition-all duration-300" style={{ left: isCollapsed ? '72px' : '256px' }}>
+      <div className="hidden lg:block fixed top-4 z-50 transition-all duration-300" style={{ left: isCollapsed ? '68px' : '272px' }}>
         <button
           onClick={onToggleCollapse}
-          className="p-2 rounded-md bg-white shadow-md text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          className="group relative p-2.5 rounded-full bg-emerald-600 shadow-lg text-white hover:bg-emerald-700 hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+          title={isCollapsed ? 'Sidebar erweitern' : 'Sidebar einklappen'}
         >
-          {isCollapsed ? (
-            <Bars3Icon className="h-5 w-5" />
-          ) : (
-            <XMarkIcon className="h-5 w-5" />
-          )}
+          <div className="relative">
+            {isCollapsed ? (
+              <svg className="h-4 w-4 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 19l-7-7 7-7M19 19l-7-7 7-7" />
+              </svg>
+            )}
+          </div>
+          
+          {/* Subtle glow effect */}
+          <div className="absolute inset-0 rounded-full bg-emerald-400 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
         </button>
       </div>
 
@@ -325,13 +367,26 @@ export default function Sidebar({ userRole, userName, userEmail, onLogout, isCol
 
           {/* Footer */}
           <div className="px-4 py-4 border-t border-gray-200">
-            <button
-              onClick={onLogout}
-              className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-colors"
-            >
-              <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5" />
-              Abmelden
-            </button>
+            <div className="relative group">
+              <button
+                onClick={onLogout}
+                className={`
+                  flex items-center w-full text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-colors
+                  ${isCollapsed ? 'px-2 py-3 justify-center' : 'px-3 py-2'}
+                `}
+                title={isCollapsed ? 'Abmelden' : undefined}
+              >
+                <ArrowRightOnRectangleIcon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} />
+                {!isCollapsed && 'Abmelden'}
+              </button>
+              
+              {/* Tooltip for collapsed logout button */}
+              {isCollapsed && (
+                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 top-1/2 transform -translate-y-1/2">
+                  Abmelden
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
