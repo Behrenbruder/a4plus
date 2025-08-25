@@ -31,6 +31,8 @@ interface SidebarProps {
   userName: string
   userEmail: string
   onLogout: () => void
+  isCollapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
 interface NavigationItem {
@@ -163,7 +165,7 @@ const navigation: NavigationItem[] = [
   }
 ]
 
-export default function Sidebar({ userRole, userName, userEmail, onLogout }: SidebarProps) {
+export default function Sidebar({ userRole, userName, userEmail, onLogout, isCollapsed = false, onToggleCollapse }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const pathname = usePathname()
@@ -256,6 +258,20 @@ export default function Sidebar({ userRole, userName, userEmail, onLogout }: Sid
         </button>
       </div>
 
+      {/* Desktop collapse button */}
+      <div className="hidden lg:block fixed top-4 z-50 transition-all duration-300" style={{ left: isCollapsed ? '72px' : '256px' }}>
+        <button
+          onClick={onToggleCollapse}
+          className="p-2 rounded-md bg-white shadow-md text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+        >
+          {isCollapsed ? (
+            <Bars3Icon className="h-5 w-5" />
+          ) : (
+            <XMarkIcon className="h-5 w-5" />
+          )}
+        </button>
+      </div>
+
       {/* Overlay for mobile */}
       {isOpen && (
         <div 
@@ -266,14 +282,20 @@ export default function Sidebar({ userRole, userName, userEmail, onLogout }: Sid
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+        fixed inset-y-0 left-0 z-40 bg-white shadow-lg transform transition-all duration-300 ease-in-out
         lg:translate-x-0 lg:static lg:inset-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
+        w-64
       `}>
         <div className="flex flex-col h-full">
           {/* Logo/Header */}
           <div className="flex items-center justify-center h-16 px-4 bg-emerald-600">
-            <h1 className="text-xl font-bold text-white">ArtePlus CRM</h1>
+            {isCollapsed ? (
+              <div className="text-xl font-bold text-white">A+</div>
+            ) : (
+              <h1 className="text-xl font-bold text-white">ArtePlus CRM</h1>
+            )}
           </div>
 
           {/* User Info */}
@@ -286,11 +308,13 @@ export default function Sidebar({ userRole, userName, userEmail, onLogout }: Sid
                   </span>
                 </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">{userName}</p>
-                <p className="text-xs text-gray-500">{userEmail}</p>
-                <p className="text-xs text-emerald-600 font-medium capitalize">{userRole}</p>
-              </div>
+              {!isCollapsed && (
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">{userName}</p>
+                  <p className="text-xs text-gray-500">{userEmail}</p>
+                  <p className="text-xs text-emerald-600 font-medium capitalize">{userRole}</p>
+                </div>
+              )}
             </div>
           </div>
 

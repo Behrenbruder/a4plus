@@ -14,6 +14,7 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
   const [loading, setLoading] = useState(true)
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     // Check if user is already logged in (from localStorage or session)
@@ -81,6 +82,10 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
     localStorage.removeItem('crm_user')
   }
 
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -109,8 +114,12 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
         userName={`${user.first_name} ${user.last_name}`}
         userEmail={user.email}
         onLogout={handleLogout}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={handleToggleSidebar}
       />
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+      }`}>
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
