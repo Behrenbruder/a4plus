@@ -9,7 +9,20 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(request: NextRequest) {
   try {
+    // Prüfe Umgebungsvariablen
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing environment variables:', {
+        supabaseUrl: !!supabaseUrl,
+        supabaseServiceKey: !!supabaseServiceKey
+      });
+      return NextResponse.json(
+        { error: 'Server-Konfigurationsfehler' },
+        { status: 500 }
+      );
+    }
+
     const data = await request.json();
+    console.log('Received data:', JSON.stringify(data, null, 2));
     
     // Validiere erforderliche Felder
     const requiredFields = ['firstName', 'lastName', 'email'];
@@ -65,6 +78,8 @@ export async function POST(request: NextRequest) {
       status: 'new'
     };
 
+    console.log('Prepared quote data:', JSON.stringify(quoteData, null, 2));
+
     // Speichere in der Datenbank
     const { data: insertedData, error } = await supabase
       .from('pv_quotes')
@@ -73,12 +88,22 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Supabase error:', error);
+      console.error('Supabase error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       return NextResponse.json(
-        { error: 'Fehler beim Speichern der Anfrage' },
+        { 
+          error: 'Fehler beim Speichern der Anfrage',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        },
         { status: 500 }
       );
     }
+
+    console.log('Successfully inserted data:', insertedData);
 
     // E-Mail-Benachrichtigung senden
     try {
@@ -95,9 +120,12 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    console.error('API error details:', error);
     return NextResponse.json(
-      { error: 'Interner Serverfehler' },
+      { 
+        error: 'Interner Serverfehler',
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      },
       { status: 500 }
     );
   }
