@@ -45,7 +45,7 @@ export async function PATCH(
     
     // Validiere erlaubte Felder
     const allowedFields = ['status', 'notes'];
-    const updateData: any = {};
+    const updateData: Record<string, string> = {};
     
     for (const field of allowedFields) {
       if (data[field] !== undefined) {
