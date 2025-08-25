@@ -8,8 +8,9 @@ const supabase = createClient(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const body = await request.json();
     const { status, reason, user_id } = body;
@@ -35,7 +36,7 @@ export async function PUT(
     const { data: currentCustomer, error: fetchError } = await supabase
       .from('customers')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (fetchError || !currentCustomer) {
@@ -74,7 +75,7 @@ export async function PUT(
         last_contact_date: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -87,7 +88,7 @@ export async function PUT(
     await supabase
       .from('contact_history')
       .insert([{
-        customer_id: params.id,
+        customer_id: id,
         user_id: user_id || null,
         contact_type: 'website_formular',
         subject: `Status geändert zu: ${status}`,
@@ -112,12 +113,12 @@ export async function PUT(
         .from('notifications')
         .insert([{
           user_id: currentCustomer.assigned_to,
-          customer_id: params.id,
+          customer_id: id,
           notification_type: 'status_change',
           title: notificationTitle,
           message: notificationMessage,
           is_read: false,
-          action_url: `/crm/customers/${params.id}`,
+          action_url: `/crm/customers/${id}`,
           metadata: {
             old_status: currentCustomer.lead_status,
             new_status: status
@@ -132,7 +133,7 @@ export async function PUT(
       await supabase
         .from('projects')
         .insert([{
-          customer_id: params.id,
+          customer_id: id,
           title: projectTitle,
           description: `Automatisch erstelltes Projekt für gewonnenen Lead`,
           status: 'planung',

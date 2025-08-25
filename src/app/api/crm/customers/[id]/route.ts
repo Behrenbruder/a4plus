@@ -8,8 +8,9 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { data, error } = await supabase
       .from('customers')
@@ -47,7 +48,7 @@ export async function GET(
           uploaded_by_user:users!documents_uploaded_by_fkey(first_name, last_name)
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (error) {
@@ -68,8 +69,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const body = await request.json();
     
@@ -86,7 +88,7 @@ export async function PUT(
       .from('customers')
       .select('id')
       .eq('email', body.email)
-      .neq('id', params.id)
+      .neq('id', id)
       .single();
 
     if (existingCustomer) {
@@ -123,7 +125,7 @@ export async function PUT(
         marketing_consent: body.marketing_consent || false,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -139,7 +141,7 @@ export async function PUT(
     await supabase
       .from('contact_history')
       .insert([{
-        customer_id: params.id,
+        customer_id: id,
         contact_type: 'website_formular',
         subject: 'Kundendaten aktualisiert',
         content: 'Kundendaten wurden im CRM-System aktualisiert',
@@ -157,14 +159,15 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     // Check if customer exists
     const { data: customer, error: fetchError } = await supabase
       .from('customers')
       .select('id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (fetchError || !customer) {
@@ -173,20 +176,20 @@ export async function DELETE(
 
     // Delete related records first (due to foreign key constraints)
     await Promise.all([
-      supabase.from('contact_history').delete().eq('customer_id', params.id),
-      supabase.from('documents').delete().eq('customer_id', params.id),
-      supabase.from('projects').delete().eq('customer_id', params.id),
-      supabase.from('quotes').delete().eq('customer_id', params.id),
-      supabase.from('customer_subsidies').delete().eq('customer_id', params.id),
-      supabase.from('notifications').delete().eq('customer_id', params.id),
-      supabase.from('campaign_recipients').delete().eq('customer_id', params.id)
+      supabase.from('contact_history').delete().eq('customer_id', id),
+      supabase.from('documents').delete().eq('customer_id', id),
+      supabase.from('projects').delete().eq('customer_id', id),
+      supabase.from('quotes').delete().eq('customer_id', id),
+      supabase.from('customer_subsidies').delete().eq('customer_id', id),
+      supabase.from('notifications').delete().eq('customer_id', id),
+      supabase.from('campaign_recipients').delete().eq('customer_id', id)
     ]);
 
     // Delete customer
     const { error } = await supabase
       .from('customers')
       .delete()
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (error) {
       console.error('Error deleting customer:', error);
