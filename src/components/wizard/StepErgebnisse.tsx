@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { FinancialMetrics, SystemLossBreakdown } from '@/lib/types';
+import type { FinancialMetrics, SystemLossBreakdown, RoofFace, EVConfig } from '@/lib/types';
+import QuoteRequestModal from '@/components/QuoteRequestModal';
 
 type Props = {
   totalKWp: number;
@@ -19,6 +20,17 @@ type Props = {
   systemLossBreakdown?: SystemLossBreakdown;
   annualMaintenanceEUR?: number;
   annualInsuranceEUR?: number;
+  // PV-Rechner Daten für Angebotserstellung
+  pvCalculatorData?: {
+    roofType?: string;
+    roofTilt?: number;
+    annualConsumption?: number;
+    electricityPrice?: number;
+    roofFaces?: RoofFace[];
+    batteryKWh?: number;
+    evData?: EVConfig;
+    heatPumpConsumption?: number;
+  };
 };
 
 export function StepErgebnisse({
@@ -36,8 +48,10 @@ export function StepErgebnisse({
   systemLossBreakdown,
   annualMaintenanceEUR,
   annualInsuranceEUR,
+  pvCalculatorData,
 }: Props) {
   const [activeTab, setActiveTab] = useState<'overview' | 'financial'>('overview');
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -201,6 +215,61 @@ export function StepErgebnisse({
 
         </div>
       )}
+
+      {/* Angebot anfordern Button */}
+      <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-xl border border-blue-200">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-center md:text-left">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Interessiert an einem individuellen Angebot?
+            </h3>
+            <p className="text-gray-600">
+              Lassen Sie sich von unseren Experten ein maßgeschneidertes Angebot für Ihre PV-Anlage erstellen. 
+              Kostenlos und unverbindlich.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowQuoteModal(true)}
+            className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl whitespace-nowrap"
+          >
+            Kostenloses Angebot anfordern
+          </button>
+        </div>
+      </div>
+
+      {/* Quote Request Modal */}
+      <QuoteRequestModal
+        isOpen={showQuoteModal}
+        onClose={() => setShowQuoteModal(false)}
+        pvData={{
+          // Grunddaten
+          roofType: pvCalculatorData?.roofType,
+          roofTilt: pvCalculatorData?.roofTilt,
+          annualConsumption: pvCalculatorData?.annualConsumption,
+          electricityPrice: pvCalculatorData?.electricityPrice,
+          
+          // Dachflächen
+          roofFaces: pvCalculatorData?.roofFaces,
+          
+          // System-Konfiguration
+          totalKWp,
+          annualPV,
+          batteryKWh: pvCalculatorData?.batteryKWh,
+          
+          // E-Auto Daten
+          evData: pvCalculatorData?.evData,
+          
+          // Wärmepumpe
+          heatPumpConsumption: pvCalculatorData?.heatPumpConsumption,
+          
+          // Berechnungsergebnisse
+          autarkie,
+          eigenverbrauch,
+          annualSavings: einsparungJahrEUR,
+          co2Savings: co2SavingsTons,
+          paybackTime: financialMetrics?.paybackTimeYears,
+        }}
+      />
     </div>
   );
 }

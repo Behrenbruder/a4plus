@@ -55,15 +55,15 @@ export default function PVPage() {
             <h2 className="h2">Ihre Unabhängigkeit beginnt auf dem Dach</h2>
             <p className="muted mt-2">
               Mit einer individuell geplanten Photovoltaikanlage erzeugen Sie Strom, genau dort, wo
-              er gebraucht wird. Arteplus begleitet Sie von der Idee bis zum Betrieb – inklusive
+              er gebraucht wird. A4Plus begleitet Sie von der Idee bis zum Betrieb – inklusive
               Fördermittel‑Beratung, fachgerechter Montage und Service.
             </p>
 
             <ul className="mt-6 grid gap-3">
               {[
                 "Mehr Unabhängigkeit von Strompreisen",
-                "Langfristige Ersparnis durch Eigenverbrauch",
-                "Nachhaltig & CO₂‑frei",
+                "Langfristige Ersparnis durch maximierten Eigenverbrauch",
+                "Nachhaltig & CO₂-arm",
                 "Wertsteigerung der Immobilie",
                 "Förderungen & steuerliche Vorteile",
               ].map((b) => (
@@ -172,10 +172,10 @@ export default function PVPage() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/pv-rechner" className="btn-primary">
-              Förder‑ & Wirtschaftlichkeits‑Check starten
+              Wirtschaftlichkeits‑Check starten
             </Link>
             <Link href="/faq-foerderungen" className="btn-ghost">
-              Zu den Förder‑FAQs
+              Zum Förder‑Check
             </Link>
           </div>
         </div>

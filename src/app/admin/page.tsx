@@ -9,7 +9,8 @@ export default function AdminDashboard() {
     totalCustomers: 0,
     totalInstallers: 0,
     activeInstallers: 0,
-    recentEmails: 0
+    recentEmails: 0,
+    pvQuotes: 0
   })
   const [loading, setLoading] = useState(true)
 
@@ -35,11 +36,16 @@ export default function AdminDashboard() {
       const emailsRes = await fetch('/api/emails?limit=1')
       const emailsData = await emailsRes.json()
 
+      // Fetch PV quotes count
+      const pvQuotesRes = await fetch('/api/pv-quotes?limit=1')
+      const pvQuotesData = await pvQuotesRes.json()
+
       setStats({
         totalCustomers: customersData.pagination?.total || 0,
         totalInstallers: installersData.pagination?.total || 0,
         activeInstallers: activeInstallersData.pagination?.total || 0,
-        recentEmails: emailsData.pagination?.total || 0
+        recentEmails: emailsData.pagination?.total || 0,
+        pvQuotes: pvQuotesData.pagination?.total || 0
       })
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -69,7 +75,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -141,10 +147,28 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">PV-Anfragen</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.pvQuotes}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Link href="/admin/customers" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -189,6 +213,22 @@ export default function AdminDashboard() {
               <div className="ml-4">
                 <h3 className="text-lg font-medium text-gray-900">E-Mail Verlauf</h3>
                 <p className="text-sm text-gray-500">E-Mail-Kommunikation einsehen</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/admin/pv-quotes" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-orange-500 rounded-md flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">PV-Anfragen</h3>
+                <p className="text-sm text-gray-500">PV-Angebots-Anfragen verwalten</p>
               </div>
             </div>
           </Link>

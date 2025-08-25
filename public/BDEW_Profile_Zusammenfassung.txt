@@ -1,0 +1,23 @@
+BDEW-Profile Zusammenfassung
+Generiert am: 24.8.2025, 18:32:38
+Jahr: 2024
+
+H25-Profil (Haushalt):
+- Datei: BDEW_H25_Profil_2024.csv
+- Jahressumme: 237960.48 kWh
+- Durchschnitt: 27.164438 kWh/h
+- Maximum: 56.650750 kWh/h
+- Minimum: 11.742750 kWh/h
+
+S25-Profil (PV-Speicher Kombination):
+- Datei: BDEW_S25_Profil_2024.csv
+- Jahressumme: 207770.96 kWh
+- Durchschnitt: 23.718146 kWh/h
+- Maximum: 63.641750 kWh/h
+- Minimum: 8.514000 kWh/h
+
+Verwendung:
+- H25: Für Haushalte ohne Batteriespeicher
+- S25: Für Haushalte mit PV-Batteriespeicher
+- Werte sind normiert auf 1 MWh (1000 kWh) Jahresverbrauch
+- Für anderen Jahresverbrauch: Werte entsprechend skalieren

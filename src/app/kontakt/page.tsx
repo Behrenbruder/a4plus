@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import LocationMap from "@/components/LocationMap";
 
 async function send(formData: FormData) {
   "use server";
@@ -23,9 +24,21 @@ export default function KontaktPage() {
             <button className="btn-primary" type="submit">Absenden</button>
           </form>
         </div>
-        <div className="card p-6">
-          <div className="font-semibold">Direkter Kontakt</div>
-          <p className="mt-2 text-sm">E-Mail: info@muster-energie.de<br/>Telefon: +49 123 4567890</p>
+        <div className="space-y-6">
+          <div className="card p-6">
+            <div className="font-semibold">Direkter Kontakt</div>
+            <p className="mt-2 text-sm">
+              E-Mail: info@a4plus.eu<br/>
+              Telefon: +49 6233 3798860<br/>
+              <span className="text-gray-600">Carl-Zeiss-Straße 5<br/>67227 Frankenthal</span>
+            </p>
+          </div>
+          <div className="card p-0 overflow-hidden">
+            <LocationMap 
+              address="Carl-Zeiss-Straße 5, 67227 Frankenthal" 
+              className="h-80"
+            />
+          </div>
         </div>
       </div>
     </div>

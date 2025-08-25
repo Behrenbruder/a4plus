@@ -6,8 +6,8 @@ type Program = {
   level: "BUND" | "LAND";
   name: string;
   categories: string[];
-  target: "PRIVAT" | "GEWERBLICH" | "BEIDES";
-  type: "ZUSCHUSS" | "KREDIT" | "STEUER" | "VERGUETUNG";
+  target: "PRIVAT" | "GEWERBLICH" | "BEIDES" | "PRIVAT / GEWERBLICH" | "GEWERBLICH / WEG";
+  type: "ZUSCHUSS" | "KREDIT" | "STEUER" | "VERGUETUNG" | "VERGÜTUNG" | "STEUERERLEICHTERUNG";
   summary: string;
   amount: string;
   criteria: string;

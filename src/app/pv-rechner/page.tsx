@@ -17,7 +17,6 @@ import { StepEV } from '@/components/wizard/StepEV';
 import { StepHeatPump, type HeatPumpConfig } from '@/components/wizard/StepHeatPump';
 import { StepPrices, type StepPricesSubmit } from '@/components/wizard/StepPrices';
 import { StepErgebnisse } from '@/components/wizard/StepErgebnisse';
-import { DebugPanel } from '@/components/wizard/DebugPanel';
 import Report from '@/components/report/Report';
 
 /* Typen & Helfer aus deiner Logik */
@@ -44,6 +43,7 @@ import {
   calculateTotalCapex,
   calculateFinancialMetrics,
   calculateHybridMetrics,
+  calculateBDEWBasedMetrics,
 } from '@/lib/pvcalc';
 
 /* Synthetisches H0 (nur Fallback) + Standardwerte */
@@ -84,7 +84,7 @@ const DEFAULT_ECON: EconomicConfig = {
   feedInTariffCtPerKWh: 8.2,
   capexPerKWpEUR: 1350,
   capexBatteryPerKWhEUR: 800,
-  opexPctOfCapexPerYear: 0.01,
+  opexPctOfCapexPerYear: 0.01, // Legacy field, now using fixed 12€/kWp/year
 };
 
 type PackTotals = { modules: number; kWp: number };
@@ -255,8 +255,6 @@ export default function Page() {
     consumptionKWhPer100km: 22,
     homeChargePercent: 80,
   });
-  const [evMode, setEvMode] = useState<EVMode>('night_22_06');
-  const [wallboxKW, setWallboxKW] = useState<number | undefined>(undefined);
   
   const [heatPump, setHeatPump] = useState<HeatPumpConfig>({
     hasHeatPump: false,
@@ -267,8 +265,6 @@ export default function Page() {
   const [kwpOverrideByFace, setKwpOverrideByFace] = useState<Record<string, number>>({});
   const [packTotal, setPackTotal] = useState<PackTotals>({ modules: 0, kWp: 0 });
 
-  /* UI */
-  const [showDebug, setShowDebug] = useState<boolean>(true);
 
   /* Lastprofil: externe Quelle laden */
   const [householdBase8760, setHouseholdBase8760] = useState<number[] | null>(null);
@@ -314,8 +310,6 @@ export default function Page() {
 
       if (Array.isArray(v.householdBase8760)) setHouseholdBase8760(v.householdBase8760);
       if (v.profileSource) setProfileSource(v.profileSource);
-      if (v.evMode) setEvMode(v.evMode);
-      if (typeof v.wallboxKW === 'number') setWallboxKW(v.wallboxKW);
       if (v.heatPump) setHeatPump(v.heatPump);
     } catch {}
   }, []);
@@ -347,8 +341,6 @@ export default function Page() {
           pvgisSource,
           householdBase8760,
           profileSource,
-          evMode,
-          wallboxKW,
           heatPump,
         }),
       );
@@ -375,8 +367,6 @@ export default function Page() {
     pvgisSource,
     householdBase8760,
     profileSource,
-    evMode,
-    wallboxKW,
     heatPump,
   ]);
 
@@ -604,10 +594,10 @@ export default function Page() {
     }
     const household = baseNorm.map((v) => v * annualHouseholdKWh);
     
-    const evProf = hourlyEVProfile(annualEVHomeKWh, evMode, wallboxKW);
+    const evProf = hourlyEVProfile(annualEVHomeKWh, 'night_22_06');
     const heatPumpProf = hourlyHeatPumpProfile(heatPump);
     return household.map((v, i) => v + (evProf[i] || 0) + (heatPumpProf[i] || 0));
-  }, [customLoadProfile, householdScenario, chosenProfile, householdBase8760, annualHouseholdKWh, annualEVHomeKWh, evMode, wallboxKW, heatPump]);
+  }, [customLoadProfile, householdScenario, chosenProfile, householdBase8760, annualHouseholdKWh, annualEVHomeKWh, heatPump]);
 
   /* ---------------------- PV stündlich ---------------------- */
   const pvProfile = useMemo(() => {
@@ -643,11 +633,12 @@ export default function Page() {
   const annualPV = useMemo(() => annualPVPerFace.reduce((a, b) => a + b, 0), [annualPVPerFace]);
   const annualConsumption = useMemo(() => loadProfile.reduce((a, b) => a + b, 0), [loadProfile]);
 
-  // Hybrid-Berechnung für Autarkie und Eigenverbrauch
+  // BDEW-basierte Berechnung für Autarkie und Eigenverbrauch
+  // Automatische Profilauswahl: H25 ohne Speicher, S25 mit Speicher
   const hybridMetrics = useMemo(() => {
     const annualHeatPumpKWh = heatPump.hasHeatPump ? heatPump.annualConsumptionKWh : 0;
     
-    return calculateHybridMetrics(
+    return calculateBDEWBasedMetrics(
       annualPV,
       annualHouseholdKWh, // Nur Haushalt ohne EV und Wärmepumpe
       batteryKWh,
@@ -684,17 +675,20 @@ export default function Page() {
   }, [perFaceKWpSum, batteryKWh, econ]);
 
   const financialMetrics = useMemo(() => {
+    // Fixed OPEX: 12€ per kWp per year (replaces old percentage-based calculation)
+    const annualOpexEUR = perFaceKWpSum * 12;
     const annualMaintenance = econ.maintenanceCostPerYearEUR || 0;
     const annualInsurance = econ.insuranceCostPerYearEUR || 0;
+    const totalAnnualOpex = annualOpexEUR + annualMaintenance + annualInsurance;
     
     return calculateFinancialMetrics(
       einsparungJahr,
       totalCapex.totalCapex,
-      annualMaintenance,
-      annualInsurance,
+      totalAnnualOpex,
+      0, // Insurance is already included in totalAnnualOpex
       settings.horizonYears
     );
-  }, [einsparungJahr, totalCapex.totalCapex, econ.maintenanceCostPerYearEUR, econ.insuranceCostPerYearEUR, settings.horizonYears]);
+  }, [einsparungJahr, totalCapex.totalCapex, perFaceKWpSum, econ.maintenanceCostPerYearEUR, econ.insuranceCostPerYearEUR, settings.horizonYears]);
 
   // Systemverluste aus Breakdown aktualisieren
   useEffect(() => {
@@ -717,8 +711,8 @@ export default function Page() {
   }, [householdBase8760, annualHouseholdKWh]);
 
   const evHourlyProfileArr = useMemo(
-    () => hourlyEVProfile(annualEVHomeKWh, evMode, wallboxKW),
-    [annualEVHomeKWh, evMode, wallboxKW],
+    () => hourlyEVProfile(annualEVHomeKWh, 'night_22_06'),
+    [annualEVHomeKWh],
   );
 
   const dailyLoadAvg24 = useMemo(() => average24(loadProfile), [loadProfile]);
@@ -752,8 +746,6 @@ export default function Page() {
         pvgisWeightedGTI,
         profileSource,
         profileLoadError,
-        evMode,
-        wallboxKW,
       },
       results: {
         perFaceKWp,
@@ -802,8 +794,6 @@ export default function Page() {
       pvgisWeightedGTI,
       profileSource,
       profileLoadError,
-      evMode,
-      wallboxKW,
       perFaceKWp,
       perFaceKWpSum,
       annualPVPerFace,
@@ -849,82 +839,14 @@ export default function Page() {
         <div className="max-w-6xl mx-auto py-3 flex items-center justify-between gap-3">
           <div className="text-sm font-medium">PV-Rechner</div>
 
-          {/* Quick-Toggles */}
-          <div className="hidden md:flex items-center gap-3 text-xs">
-            <label className="flex items-center gap-1">
-              <span className="text-gray-600">Profil:</span>
-              <select
-                className="border rounded px-1 py-0.5"
-                value={profileSource}
-                onChange={(e) => setProfileSource(e.target.value as 'BDEW' | 'OPSD' | 'SYNTH')}
-                title="Haushaltslast-Quelle wählen"
-              >
-                <option value="BDEW">BDEW H25 (empfohlen)</option>
-                <option value="OPSD">OPSD</option>
-                <option value="SYNTH">Synthetisch</option>
-              </select>
-            </label>
 
-            <label className="flex items-center gap-1">
-              <span className="text-gray-600">EV-Fenster:</span>
-              <select
-                className="border rounded px-1 py-0.5"
-                value={evMode}
-                onChange={(e) => setEvMode(e.target.value as EVMode)}
-                title="Zeitfenster Heimladung"
-              >
-                <option value="day_12_16">Tag (12–16)</option>
-                <option value="evening_18_22">Abend (18–22)</option>
-                <option value="night_22_06">Nacht (22–06)</option>
-                <option value="custom_wallbox">Custom (WLbx)</option>
-              </select>
-            </label>
-
-            {evMode === 'custom_wallbox' && (
-              <label className="flex items-center gap-1">
-                <span className="text-gray-600">Wallbox kW:</span>
-                <input
-                  type="number"
-                  step={0.1}
-                  min={0}
-                  placeholder="3.7"
-                  value={wallboxKW ?? ''}
-                  onChange={(e) =>
-                    setWallboxKW(e.target.value === '' ? undefined : Number(e.target.value))
-                  }
-                  className="w-16 border rounded px-1 py-0.5"
-                />
-              </label>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowDebug((v) => !v)}
-            className={`text-xs px-2 py-1 rounded border ${
-              showDebug ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white'
-            }`}
-            title="Debug-Panel anzeigen/ausblenden"
-          >
-            Debug {showDebug ? 'an' : 'aus'}
-          </button>
         </div>
         <div className="h-1 bg-gray-200">
           <div className="h-1 bg-emerald-600" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
-      {profileLoadError && (
-        <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded">
-          Profil konnte nicht geladen werden ({profileLoadError}). Nutze Fallback.
-        </div>
-      )}
 
-      {showDebug && (
-        <div className="mt-4">
-          <DebugPanel data={debugData} />
-        </div>
-      )}
 
       <div className="space-y-10 mt-6">
         <Section number={1} title="Dachart" idAnchor="s1-dachart" done={!!roofType}>
@@ -1071,52 +993,6 @@ export default function Page() {
         <Section number={9} title="E-Auto" idAnchor="s9-ev" done>
           <StepEV value={ev} onNext={(vals) => setEV(vals)} />
 
-          {/* kleines Zusatz-UI (mobil sichtbar) */}
-          <div className="mt-3 text-xs text-gray-600">
-            <div className="flex flex-wrap gap-3 items-center">
-              <div>
-                <label className="mr-1">Profilquelle:</label>
-                <select
-                  className="border rounded px-2 py-1"
-                  value={profileSource}
-                  onChange={(e) => setProfileSource(e.target.value as 'BDEW' | 'OPSD' | 'SYNTH')}
-                >
-                  <option value="BDEW">BDEW H25 (empfohlen)</option>
-                  <option value="OPSD">OPSD</option>
-                  <option value="SYNTH">Synthetisch</option>
-                </select>
-              </div>
-              <div>
-                <label className="mr-1">EV-Fenster:</label>
-                <select
-                  className="border rounded px-2 py-1"
-                  value={evMode}
-                  onChange={(e) => setEvMode(e.target.value as EVMode)}
-                >
-                  <option value="day_12_16">Tag (12–16)</option>
-                  <option value="evening_18_22">Abend (18–22)</option>
-                  <option value="night_22_06">Nacht (22–06)</option>
-                  <option value="custom_wallbox">Custom (WLbx)</option>
-                </select>
-              </div>
-              {evMode === 'custom_wallbox' && (
-                <div>
-                  <label className="mr-1">Wallbox kW:</label>
-                  <input
-                    type="number"
-                    step={0.1}
-                    min={0}
-                    placeholder="3.7"
-                    value={wallboxKW ?? ''}
-                    onChange={(e) =>
-                      setWallboxKW(e.target.value === '' ? undefined : Number(e.target.value))
-                    }
-                    className="w-20 border rounded px-2 py-1"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
         </Section>
 
         <Section number={10} title="Wärmepumpe" idAnchor="s10-waermepumpe" done>
@@ -1142,6 +1018,22 @@ export default function Page() {
             systemLossBreakdown={systemLossBreakdown}
             annualMaintenanceEUR={econ.maintenanceCostPerYearEUR}
             annualInsuranceEUR={econ.insuranceCostPerYearEUR}
+            pvCalculatorData={{
+              roofType,
+              roofTilt: defaultTilt,
+              annualConsumption: annualConsumption,
+              electricityPrice: econ.electricityPriceCtPerKWh,
+              roofFaces: faces,
+              batteryKWh,
+              evData: {
+                kmPerYear: ev.kmPerYear,
+                kWhPer100km: ev.consumptionKWhPer100km,
+                homeChargingShare: ev.homeChargePercent / 100,
+                arrivalHour: 18, // Default arrival hour
+                chargerPowerKW: 11, // Default charger power
+              },
+              heatPumpConsumption: heatPump.hasHeatPump ? heatPump.annualConsumptionKWh : undefined,
+            }}
           />
           <div className="mt-6">
             <Report data={debugData} />

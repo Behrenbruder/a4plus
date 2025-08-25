@@ -6,8 +6,8 @@ import {
   runABTest,
   RealPlantData,
   ValidationResult
-} from '../lib/validation';
-import { calculateHybridMetrics } from '../lib/pvcalc';
+} from '@/lib/validation';
+import { calculateHybridMetrics } from '@/lib/pvcalc';
 
 // Erweiterte Testdaten mit verschiedenen Szenarien
 function generateRealisticTestData(): RealPlantData[] {

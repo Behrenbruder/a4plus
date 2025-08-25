@@ -1,5 +1,5 @@
 // /src/lib/validation.ts
-import { calculateHybridMetrics } from './pvcalc';
+import { calculateHybridMetrics, calculateEnhancedHybridMetrics } from './pvcalc';
 
 export interface RealPlantData {
   // Anlagenspezifikation
@@ -358,4 +358,62 @@ export function generateSamplePlantData(count: number): RealPlantData[] {
   }
   
   return sampleData;
+}
+
+/**
+ * Validierung mit erweiterter BDEW-basierter Berechnung
+ */
+export function validateEnhancedCalculation(plantData: RealPlantData): ValidationResult {
+  // Berechne mit erweiterter Hybrid/BDEW-Ansatz
+  const enhancedResult = calculateEnhancedHybridMetrics(
+    plantData.actualAnnualPVKWh,
+    plantData.householdConsumptionKWh,
+    plantData.batteryCapacityKWh || 0,
+    plantData.evConsumptionKWh || 0,
+    plantData.heatPumpConsumptionKWh || 0,
+    true // Verwende BDEW wenn möglich
+  );
+
+  const calculatedAutarky = enhancedResult.autarky * 100;
+  const calculatedSelfConsumption = enhancedResult.selfConsumption * 100;
+
+  // Berechne Abweichungen
+  const autarkyAbsolute = Math.abs(calculatedAutarky - plantData.actualAutarkyPercent);
+  const autarkyRelative = Math.abs((calculatedAutarky - plantData.actualAutarkyPercent) / plantData.actualAutarkyPercent) * 100;
+  
+  const selfConsumptionAbsolute = Math.abs(calculatedSelfConsumption - plantData.actualSelfConsumptionPercent);
+  const selfConsumptionRelative = Math.abs((calculatedSelfConsumption - plantData.actualSelfConsumptionPercent) / plantData.actualSelfConsumptionPercent) * 100;
+
+  // Bestimme Qualität (strengere Kriterien für BDEW-basierte Berechnung)
+  let quality: 'excellent' | 'good' | 'acceptable' | 'poor';
+  
+  if (autarkyAbsolute <= 2 && selfConsumptionAbsolute <= 1.5) {
+    quality = 'excellent';
+  } else if (autarkyAbsolute <= 4 && selfConsumptionAbsolute <= 2.5) {
+    quality = 'good';
+  } else if (autarkyAbsolute <= 8 && selfConsumptionAbsolute <= 5) {
+    quality = 'acceptable';
+  } else {
+    quality = 'poor';
+  }
+
+  return {
+    plantId: plantData.plantId,
+    calculated: {
+      autarkyPercent: calculatedAutarky,
+      selfConsumptionPercent: calculatedSelfConsumption,
+    },
+    actual: {
+      autarkyPercent: plantData.actualAutarkyPercent,
+      selfConsumptionPercent: plantData.actualSelfConsumptionPercent,
+    },
+    deviations: {
+      autarkyAbsolute,
+      autarkyRelative,
+      selfConsumptionAbsolute,
+      selfConsumptionRelative,
+    },
+    quality,
+    plantData,
+  };
 }

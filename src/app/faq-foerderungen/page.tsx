@@ -21,11 +21,11 @@ type Result = { bundesweit: ResultItem[]; land: ResultItem[] };
 
 const PRODUCT_CATEGORIES = [
   { key: "PV", label: "PV-Anlage", img: "/images/icons/pv2.png" },
-  { key: "Speicher", label: "Batteriespeicher", img: "/images/icons/speicher.png" },
-  { key: "Dämmung", label: "Dämmung", img: "/images/icons/daemmung.png" },
+  { key: "Speicher", label: "Batteriespeicher", img: "/images/icons/battery.png" },
+  { key: "Dämmung", label: "Dämmung", img: "/images/icons/dämmung.png" },
   { key: "Fenster", label: "Fenster", img: "/images/icons/fenster.png" },
-  { key: "Türen", label: "Türen", img: "/images/icons/tueren.png" },
-  { key: "Beschattung", label: "Beschattung", img: "/images/icons/beschattung.png" },
+  { key: "Türen", label: "Türen", img: "/images/icons/tür.png" },
+  { key: "Beschattung", label: "Beschattung", img: "/images/icons/rolladen.png" },
   { key: "Wärmepumpe", label: "Wärmepumpe", img: "/images/icons/waermepumpe.png" },
 ] as const;
 

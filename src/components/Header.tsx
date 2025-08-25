@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function Header() {
   return (
-    <header className="border-b border-gray-100 bg-white">
+    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur-sm shadow-sm">
       <div className="container flex items-center justify-between py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
@@ -63,7 +63,7 @@ export function Header() {
           </div>
 
           <Link href="/pv-rechner" className="hover:text-emerald-600 px-2 py-1">PV-Rechner</Link>
-          <Link href="/faq-foerderungen" className="hover:text-emerald-600 px-2 py-1">FAQ Förderungen</Link>
+          <Link href="/faq-foerderungen" className="hover:text-emerald-600 px-2 py-1">Förder-Check</Link>
           <Link href="/ueber-uns" className="hover:text-emerald-600 px-2 py-1">Über uns</Link>
           <Link href="/kontakt" className="hover:text-emerald-600 px-2 py-1">Kontakt</Link>
         </nav>

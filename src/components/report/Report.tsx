@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import {
@@ -129,17 +129,16 @@ function irr(cashflows: number[]): number | null {
 export default function Report({ data }: { data: ReportData }) {
   const { inputs, results } = data;
 
-  // ------------- Szenarien ----------------
-  const [priceScenario, setPriceScenario] = useState<'baseline' | 'plus30' | 'minus30'>('baseline');
-  const [batteryEnabled, setBatteryEnabled] = useState<boolean>((inputs.batteryKWh || 0) > 0);
-  const [discountRate, setDiscountRate] = useState<number>(0.04); // 4% Diskontsatz für NPV/LCOE/IRR
+  // ------------- Fixed 2% annual price increase & 4% discount rate ----------------
+  const batteryEnabled = (inputs.batteryKWh || 0) > 0; // Battery is enabled if capacity > 0
+  const discountRate = 0.04; // Fixed 4% discount rate
 
-  // Preisfaktoren
-  const priceMult = priceScenario === 'plus30' ? 1.3 : priceScenario === 'minus30' ? 0.7 : 1;
+  // Fixed 2% annual price increase
+  const annualPriceIncrease = 0.02; // 2% per year
 
-  // Strompreis & Vergütung (€/kWh) nach Szenario
-  const priceEUR = ((results.priceCt || inputs.econ.electricityPriceCtPerKWh || 0) / 100) * priceMult;
-  const feedEUR = ((results.feedinCt || inputs.econ.feedInTariffCtPerKWh || 0) / 100) * priceMult;
+  // Base prices (€/kWh)
+  const basePriceEUR = (results.priceCt || inputs.econ.electricityPriceCtPerKWh || 0) / 100;
+  const baseFeedEUR = (results.feedinCt || inputs.econ.feedInTariffCtPerKWh || 0) / 100;
 
   // Pie-Percent fixen
   const autarkiePct = pct(results.autarkiePct);
@@ -173,15 +172,15 @@ export default function Report({ data }: { data: ReportData }) {
   // ---- CAPEX/OPEX ----
   const capexKWp = inputs.econ.capexPerKWpEUR ?? 1350;
   const capexBatt = inputs.econ.capexBatteryPerKWhEUR ?? 800;
-  const opexPct = inputs.econ.opexPctOfCapexPerYear ?? 0.01;
+  const opexPerKWpPerYear = 12; // Fixed 12€ per kWp per year
 
   const capex =
     results.totalKWp * capexKWp +
     (batteryEnabled ? (inputs.batteryKWh || 0) * capexBatt : 0);
 
-  const opexYear = capex * opexPct;
+  const opexYear = results.totalKWp * opexPerKWpPerYear;
 
-  // ---- Cashflows mit Degradation & Szenarien ----
+  // ---- Cashflows mit Degradation & 2% jährlicher Preissteigerung ----
   const horizon = inputs.settings.horizonYears || 30;
   const degr = clamp01(inputs.settings.degradationPctPerYear ?? 0);
 
@@ -195,6 +194,8 @@ export default function Report({ data }: { data: ReportData }) {
       feedEUR: number;
       opexEUR: number;
       totalEUR: number; // saved + feed - opex
+      priceEUR: number; // Strompreis für dieses Jahr
+      feedTariffEUR: number; // Einspeisevergütung für dieses Jahr
     }> = [];
 
     for (let y = 1; y <= horizon; y++) {
@@ -203,8 +204,12 @@ export default function Report({ data }: { data: ReportData }) {
       const fi = noBatteryAdj.fi * f;
       const pv = (noBatteryAdj.ev + noBatteryAdj.fi) * f;
 
-      const saved = ev * priceEUR;
-      const feed = fi * feedEUR;
+      // 2% jährliche Preissteigerung
+      const yearlyPriceEUR = basePriceEUR * Math.pow(1 + annualPriceIncrease, y - 1);
+      const yearlyFeedEUR = baseFeedEUR * Math.pow(1 + annualPriceIncrease, y - 1);
+
+      const saved = ev * yearlyPriceEUR;
+      const feed = fi * yearlyFeedEUR;
       const total = saved + feed - opexYear;
 
       rows.push({
@@ -216,10 +221,12 @@ export default function Report({ data }: { data: ReportData }) {
         feedEUR: feed,
         opexEUR: opexYear,
         totalEUR: total,
+        priceEUR: yearlyPriceEUR,
+        feedTariffEUR: yearlyFeedEUR,
       });
     }
     return rows;
-  }, [horizon, degr, noBatteryAdj.ev, noBatteryAdj.fi, priceEUR, feedEUR, opexYear]);
+  }, [horizon, degr, noBatteryAdj.ev, noBatteryAdj.fi, basePriceEUR, baseFeedEUR, annualPriceIncrease, opexYear]);
 
   const totals = useMemo(() => {
     const sum = (k: keyof (typeof cashRows)[number]) =>
@@ -232,25 +239,6 @@ export default function Report({ data }: { data: ReportData }) {
     };
   }, [cashRows]);
 
-  // ---- NPV / IRR / LCOE ----
-  const discount = Math.max(0, discountRate);
-  const cashflowsForNPV = useMemo(() => {
-    // t=0: -CAPEX; t>=1: totalEUR (schon opex berücksichtigt)
-    return [-capex, ...cashRows.map((r) => r.totalEUR)];
-  }, [capex, cashRows]);
-
-  const npvEUR = useMemo(() => npv(discount, cashflowsForNPV), [discount, cashflowsForNPV]);
-  const irrPct = useMemo(() => {
-    const v = irr(cashflowsForNPV);
-    return v == null ? null : v * 100;
-  }, [cashflowsForNPV]);
-  const lcoeEURperKWh = useMemo(() => {
-    // PV of costs / PV of energy
-    const pvCosts =
-      capex + cashRows.reduce((s, r, i) => s + opexYear / Math.pow(1 + discount, i + 1), 0);
-    const pvEnergy = cashRows.reduce((s, r, i) => s + r.pvKWh / Math.pow(1 + discount, i + 1), 0);
-    return pvEnergy > 0 ? pvCosts / pvEnergy : NaN;
-  }, [capex, cashRows, discount, opexYear]);
 
   // ---- PDF Export (Deckblatt + Inhalt) ----
   const coverRef = useRef<HTMLDivElement>(null);
@@ -305,43 +293,9 @@ export default function Report({ data }: { data: ReportData }) {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <h2 className="text-xl font-semibold">PV-Projektbericht</h2>
         <div className="flex flex-wrap items-center gap-2">
-          {/* Szenario: Preis */}
-          <label className="text-sm">Preisszenario:</label>
-          <select
-            className="border rounded px-2 py-1 text-sm"
-            value={priceScenario}
-            onChange={(e) => setPriceScenario(e.target.value as 'baseline' | 'plus30' | 'minus30')}
-          >
-            <option value="baseline">Baseline</option>
-            <option value="plus30">+30% Preise</option>
-            <option value="minus30">−30% Preise</option>
-          </select>
-
-          {/* Szenario: Batterie */}
-          <label className="text-sm ml-2">Batterie:</label>
-          <input
-            type="checkbox"
-            className="h-4 w-4"
-            checked={batteryEnabled}
-            onChange={(e) => setBatteryEnabled(e.target.checked)}
-            disabled={(inputs.batteryKWh || 0) <= 0}
-            title={(inputs.batteryKWh || 0) > 0 ? 'Batterie an/aus (vereinfachte Näherung)' : 'Keine Batterie konfiguriert'}
-          />
-
-          {/* Diskontsatz */}
-          <label className="text-sm ml-2">Diskontsatz:</label>
-          <input
-            type="number"
-            className="border rounded px-2 py-1 text-sm w-20"
-            step="0.1"
-            value={(discountRate * 100).toFixed(1)}
-            onChange={(e) => setDiscountRate(Math.max(0, Number(e.target.value) / 100))}
-          />
-          <span className="text-sm">%</span>
-
           <button
             onClick={handlePdf}
-            className="ml-2 px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+            className="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
           >
             Als PDF herunterladen
           </button>
@@ -416,12 +370,13 @@ export default function Report({ data }: { data: ReportData }) {
                 <tr><td className="text-gray-500">PR-Faktoren</td><td>Build {inputs.settings.buildFactor}, Shading {inputs.settings.shadingFactor}, System {inputs.settings.systemLossFactor}</td></tr>
                 <tr><td className="text-gray-500">Degradation</td><td>{(inputs.settings.degradationPctPerYear*100).toFixed(2)} % / Jahr</td></tr>
                 <tr><td className="text-gray-500">Horizont</td><td>{inputs.settings.horizonYears} Jahre</td></tr>
-                <tr><td className="text-gray-500">Strompreis (Szenario)</td><td>{priceEUR.toFixed(2)} €/kWh</td></tr>
-                <tr><td className="text-gray-500">Einspeisevergütung (Szenario)</td><td>{feedEUR.toFixed(2)} €/kWh</td></tr>
+                <tr><td className="text-gray-500">Strompreis (Basis)</td><td>{basePriceEUR.toFixed(2)} €/kWh</td></tr>
+                <tr><td className="text-gray-500">Einspeisevergütung (Basis)</td><td>{baseFeedEUR.toFixed(2)} €/kWh</td></tr>
+                <tr><td className="text-gray-500">Jährliche Preissteigerung</td><td>{(annualPriceIncrease * 100).toFixed(1)} %</td></tr>
                 <tr><td className="text-gray-500">Quelle Strahlung</td><td>{inputs.pvgisSource || '—'}</td></tr>
                 <tr><td className="text-gray-500">CAPEX</td><td>{fmt(capex, 0)} € (kWp {capexKWp} €/kWp{inputs.batteryKWh ? ` + Batterie ${capexBatt} €/kWh` : ''})</td></tr>
-                <tr><td className="text-gray-500">OPEX/Jahr</td><td>{fmt(opexYear, 0)} € ({( (inputs.econ.opexPctOfCapexPerYear ?? 0.01) * 100).toFixed(1)} % von CAPEX)</td></tr>
-                <tr><td className="text-gray-500">Diskontsatz</td><td>{(discount*100).toFixed(1)} %</td></tr>
+                <tr><td className="text-gray-500">OPEX/Jahr</td><td>{fmt(opexYear, 0)} € ({opexPerKWpPerYear} €/kWp·a)</td></tr>
+                <tr><td className="text-gray-500">Diskontsatz</td><td>{(discountRate*100).toFixed(1)} %</td></tr>
               </tbody>
             </table>
           </div>
@@ -552,27 +507,6 @@ export default function Report({ data }: { data: ReportData }) {
           </div>
         </div>
 
-        {/* KPIs: NPV / IRR / LCOE */}
-        <div className="grid md:grid-cols-3 gap-3">
-          <div className="rounded-xl border p-4">
-            <div className="text-xs text-gray-500">NPV (heutiger Gegenwert)</div>
-            <div className={`font-bold ${npvEUR >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-              {fmt(npvEUR, 0)} €
-            </div>
-          </div>
-          <div className="rounded-xl border p-4">
-            <div className="text-xs text-gray-500">IRR (interner Zinsfuß)</div>
-            <div className="font-bold">
-              {irrPct == null ? '—' : `${irrPct.toFixed(2)} %`}
-            </div>
-          </div>
-          <div className="rounded-xl border p-4">
-            <div className="text-xs text-gray-500">LCOE (Stromgestehungskosten)</div>
-            <div className="font-bold">
-              {isFinite(lcoeEURperKWh) ? `${lcoeEURperKWh.toFixed(3)} €/kWh` : '—'}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
