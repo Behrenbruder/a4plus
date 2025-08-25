@@ -33,8 +33,8 @@ export async function ensureGoogleMaps(libraries: Array<'drawing' | 'geometry' |
   if (typeof window === 'undefined') return;
 
   const apiKey = (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '').trim();
-  if (!apiKey) {
-    throw new Error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY fehlt');
+  if (!apiKey || apiKey === 'your_google_maps_api_key') {
+    throw new Error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY fehlt oder ist ungültig');
   }
 
   await loadScriptOnce(apiKey);

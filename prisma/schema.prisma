@@ -25,3 +25,85 @@ model Lead {
 
   createdAt    DateTime @default(now())
 }
+
+model Customer {
+  id           Int      @id @default(autoincrement())
+  supabaseId   String?  @unique // Reference to Supabase record
+  
+  // Kundendaten
+  firstName    String
+  lastName     String
+  email        String   @unique
+  phone        String?
+  address      String?
+  city         String?
+  postalCode   String?
+  
+  // Status
+  status       String   @default("lead") // lead, customer, inactive
+  notes        String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model PvQuote {
+  id                        Int      @id @default(autoincrement())
+  supabaseId               String?  @unique // Reference to Supabase record
+  
+  // Kundendaten
+  firstName                String
+  lastName                 String
+  email                    String
+  phone                    String?
+  address                  String?
+  city                     String?
+  postalCode               String?
+  
+  // Grundlegende PV-Rechner Eingabedaten
+  annualConsumptionKwh     Float?   // Jahresverbrauch
+  electricityPriceCtPerKwh Float?   // Strompreis in Cent/kWh
+  
+  // Detaillierte Dachflächen-Informationen (JSON String mit allen Details)
+  roofFaces                String?  // JSON: [{area, gti, orientation, tilt, buildingFactor, shadingFactor, estimatedModules}]
+  
+  // System-Konfiguration und Berechnungen
+  totalKwp                 Float?   // Gesamte kWp-Leistung
+  estimatedTotalModules    Int?     // Geschätzte Gesamtanzahl Module
+  annualPvKwh              Float?   // Tatsächliche Jahresproduktion
+  
+  // Speicher
+  batteryKwh               Float?   // Speicherkapazität in kWh
+  
+  // E-Auto Daten (alle EV-Daten)
+  evKmPerYear              Int?     // Kilometer pro Jahr
+  evKwhPer100km            Float?   // kWh pro 100km Verbrauch
+  evHomeChargingShare      Float?   // Anteil Heimladung (0-1)
+  evChargerPowerKw         Float?   // Ladeleistung in kW
+  evAnnualConsumptionKwh   Float?   // Jährlicher EV-Verbrauch
+  
+  // Wärmepumpe
+  heatPumpConsumptionKwh   Float?   // Jährlicher Wärmepumpen-Verbrauch
+  
+  // Berechnungsergebnisse (behalten für Übersicht)
+  autarkiePct              Float?
+  eigenverbrauchPct        Float?
+  annualSavingsEur         Float?
+  co2SavingsTons           Float?
+  paybackTimeYears         Float?
+  
+  // Zusätzliche technische Details
+  roofType                 String?  // Dachtyp
+  totalRoofArea            Float?   // Gesamte Dachfläche
+  usableRoofArea           Float?   // Nutzbare Dachfläche
+  averageGti               Float?   // Durchschnittliche GTI
+  averageOrientation       Float?   // Durchschnittliche Ausrichtung
+  averageTilt              Float?   // Durchschnittliche Neigung
+  
+  // Status und Notizen
+  status                   String   @default("new") // new, contacted, quoted, converted, declined
+  notes                    String?
+  
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}

@@ -293,6 +293,7 @@ export default function FensterUndBeschattungPage() {
           <ProductRow title="Kömmerling 76 AD / 76 MD" img="/images/fenster/Kömmerling 76 MD.jpg" imgContain reverse>
             <ul className="list-disc pl-5 space-y-1">
               <li>76&nbsp;mm Bautiefe mit Anschlagdichtung (AD)</li>
+              <li>76&nbsp;mm Bautiefe mit Mitteldichtung (MD)</li>
               <li>Sehr gutes Preis‑Leistungs‑Verhältnis für Neubau &amp; Sanierung</li>
               <li>Optimierte Wärme‑ &amp; Schalldämmung bei schlanker Optik</li>
               <li>Großes Zubehör‑ &amp; Farbprogramm</li>

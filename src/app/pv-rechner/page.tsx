@@ -223,6 +223,10 @@ function average24(arr: number[]): number[] {
 /* -------------------------- Seite -------------------------- */
 
 export default function Page() {
+  /* Wizard State */
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+
   /* Grunddaten */
   const [roofType, setRoofType] = useState<RoofType>('Satteldach');
   const [defaultTilt, setDefaultTilt] = useState<number>(35);
@@ -833,6 +837,7 @@ export default function Page() {
   const pct = Math.round((sections.filter((s) => s.done).length / sections.length) * 100);
   const containerRef = useRef<HTMLDivElement>(null);
 
+
   return (
     <div className="max-w-6xl mx-auto px-4 pb-20" ref={containerRef}>
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
@@ -964,6 +969,15 @@ export default function Page() {
           />
         </Section>
 
+        <Section number={6} title="Bebauung & Beschattung" idAnchor="s6-bebauung" done>
+          <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+            <div className="text-sm text-blue-800">
+              <strong>Hinweis:</strong> Die Standardwerte für Bebauung (65%) und Beschattung (97%) sind bereits optimiert. 
+              Diese können in späteren Versionen angepasst werden.
+            </div>
+          </div>
+        </Section>
+
         <Section number={7} title="Modul & Paketierung" idAnchor="s7-module" done>
           <StepModulePacking
             faces={faces}
@@ -992,7 +1006,6 @@ export default function Page() {
 
         <Section number={9} title="E-Auto" idAnchor="s9-ev" done>
           <StepEV value={ev} onNext={(vals) => setEV(vals)} />
-
         </Section>
 
         <Section number={10} title="Wärmepumpe" idAnchor="s10-waermepumpe" done>

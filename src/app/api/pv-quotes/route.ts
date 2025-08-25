@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { sendNotificationEmail } from '@/lib/email-notifications';
+import { PrismaClient } from '@prisma/client';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   // Cloudflare-freundliche Headers setzen
@@ -18,18 +15,6 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    // Prüfe Umgebungsvariablen
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing environment variables:', {
-        supabaseUrl: !!supabaseUrl,
-        supabaseServiceKey: !!supabaseServiceKey
-      });
-      return NextResponse.json(
-        { error: 'Server-Konfigurationsfehler' },
-        { status: 500, headers }
-      );
-    }
-
     const data = await request.json();
     console.log('Received data:', JSON.stringify(data, null, 2));
     
@@ -39,84 +24,89 @@ export async function POST(request: NextRequest) {
       if (!data[field]) {
         return NextResponse.json(
           { error: `Feld ${field} ist erforderlich` },
-          { status: 400 }
+          { status: 400, headers }
         );
       }
     }
 
-    // Bereite Daten für die Datenbank vor
-    const quoteData = {
-      first_name: data.firstName,
-      last_name: data.lastName,
+    // Speichere in der lokalen Prisma-Datenbank
+    const prismaData = {
+      firstName: data.firstName,
+      lastName: data.lastName,
       email: data.email,
       phone: data.phone || null,
       address: data.address || null,
       city: data.city || null,
-      postal_code: data.postalCode || null,
+      postalCode: data.postalCode || null,
       
-      // PV-Rechner Daten
-      roof_type: data.pvData?.roofType || null,
-      roof_tilt_deg: data.pvData?.roofTilt || null,
-      annual_consumption_kwh: data.pvData?.annualConsumption || null,
-      electricity_price_ct_per_kwh: data.pvData?.electricityPrice || null,
+      // Grundlegende PV-Rechner Eingabedaten
+      annualConsumptionKwh: data.pvData?.annualConsumption || null,
+      electricityPriceCtPerKwh: data.pvData?.electricityPrice || null,
       
-      // Dachflächen als JSON
-      roof_faces: data.pvData?.roofFaces ? JSON.stringify(data.pvData.roofFaces) : null,
+      // Detaillierte Dachflächen-Informationen (JSON String mit allen Details)
+      roofFaces: data.pvData?.roofFaces && data.pvData.roofFaces.length > 0 ? JSON.stringify(data.pvData.roofFaces) : null,
       
-      // System-Konfiguration
-      total_kwp: data.pvData?.totalKWp || null,
-      annual_pv_kwh: data.pvData?.annualPV || null,
-      battery_kwh: data.pvData?.batteryKWh || null,
+      // System-Konfiguration und Berechnungen
+      totalKwp: data.pvData?.totalKwp || null,
+      estimatedTotalModules: data.pvData?.estimatedTotalModules || null,
+      annualPvKwh: data.pvData?.annualPvProduction || null,
       
-      // E-Auto Daten
-      ev_km_per_year: data.pvData?.evData?.kmPerYear || null,
-      ev_kwh_per_100km: data.pvData?.evData?.kWhPer100km || null,
-      ev_home_charging_share: data.pvData?.evData?.homeChargingShare || null,
-      ev_charger_power_kw: data.pvData?.evData?.chargerPowerKW || null,
+      // Speicher
+      batteryKwh: data.pvData?.batteryKwh || null,
+      
+      // E-Auto Daten (alle EV-Daten)
+      evKmPerYear: data.pvData?.evData?.kmPerYear || null,
+      evKwhPer100km: data.pvData?.evData?.kWhPer100km || null,
+      evHomeChargingShare: data.pvData?.evData?.homeChargingShare || null,
+      evChargerPowerKw: data.pvData?.evData?.chargerPowerKW || null,
+      evAnnualConsumptionKwh: data.pvData?.evData?.annualConsumption || null,
       
       // Wärmepumpe
-      heat_pump_consumption_kwh: data.pvData?.heatPumpConsumption || null,
+      heatPumpConsumptionKwh: data.pvData?.heatPumpConsumption || null,
       
-      // Berechnungsergebnisse
-      autarkie_pct: data.pvData?.autarkie ? data.pvData.autarkie * 100 : null,
-      eigenverbrauch_pct: data.pvData?.eigenverbrauch ? data.pvData.eigenverbrauch * 100 : null,
-      annual_savings_eur: data.pvData?.annualSavings || null,
-      co2_savings_tons: data.pvData?.co2Savings || null,
-      payback_time_years: data.pvData?.paybackTime || null,
+      // Berechnungsergebnisse (behalten für Übersicht)
+      autarkiePct: data.pvData?.autarkiePct || null,
+      eigenverbrauchPct: data.pvData?.eigenverbrauchPct || null,
+      annualSavingsEur: data.pvData?.annualSavingsEur || null,
+      co2SavingsTons: data.pvData?.co2Savings || null,
+      paybackTimeYears: data.pvData?.paybackTime || null,
+      
+      // Zusätzliche technische Details
+      roofType: data.pvData?.roofType || null,
+      totalRoofArea: data.pvData?.totalRoofArea || null,
+      usableRoofArea: data.pvData?.usableRoofArea || null,
+      averageGti: data.pvData?.averageGti || null,
+      averageOrientation: data.pvData?.averageOrientation || null,
+      averageTilt: data.pvData?.averageTilt || null,
       
       status: 'new'
     };
 
-    console.log('Prepared quote data:', JSON.stringify(quoteData, null, 2));
+    console.log('Prepared quote data:', JSON.stringify(prismaData, null, 2));
 
-    // Speichere in der Datenbank
-    const { data: insertedData, error } = await supabase
-      .from('pv_quotes')
-      .insert([quoteData])
-      .select()
-      .single();
+    const insertedData = await prisma.pvQuote.create({
+      data: prismaData
+    });
 
-    if (error) {
-      console.error('Supabase error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-      return NextResponse.json(
-        { 
-          error: 'Fehler beim Speichern der Anfrage',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        },
-        { status: 500 }
-      );
-    }
-
-    console.log('Successfully inserted data:', insertedData);
+    console.log('Successfully saved to Prisma database:', insertedData.id);
 
     // E-Mail-Benachrichtigung senden
     try {
-      await sendNotificationEmail(insertedData);
+      // Konvertiere Prisma-Daten für E-Mail-Funktion
+      const emailData = {
+        id: insertedData.id,
+        first_name: insertedData.firstName,
+        last_name: insertedData.lastName,
+        email: insertedData.email,
+        phone: insertedData.phone,
+        city: insertedData.city,
+        total_kwp: insertedData.totalKwp,
+        autarkie_pct: insertedData.autarkiePct,
+        annual_savings_eur: insertedData.annualSavingsEur,
+        created_at: insertedData.createdAt
+      };
+      
+      await sendNotificationEmail(emailData);
     } catch (emailError) {
       console.error('E-Mail-Benachrichtigung fehlgeschlagen:', emailError);
       // Fehler bei E-Mail soll die Anfrage nicht blockieren
@@ -126,7 +116,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Ihre Anfrage wurde erfolgreich übermittelt',
       id: insertedData.id
-    });
+    }, { headers });
 
   } catch (error) {
     console.error('API error details:', error);
@@ -135,7 +125,7 @@ export async function POST(request: NextRequest) {
         error: 'Interner Serverfehler',
         details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
       },
-      { status: 500 }
+      { status: 500, headers }
     );
   }
 }
@@ -160,33 +150,86 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status');
     
-    let query = supabase
-      .from('pv_quotes')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Baue Prisma-Query
+    const where = status ? { status } : {};
     
-    if (status) {
-      query = query.eq('status', status);
-    }
-    
-    const { data, error, count } = await query
-      .range((page - 1) * limit, page * limit - 1);
+    const [data, total] = await Promise.all([
+      prisma.pvQuote.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.pvQuote.count({ where })
+    ]);
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json(
-        { error: 'Fehler beim Laden der Anfragen' },
-        { status: 500 }
-      );
-    }
+    // Konvertiere Prisma-Daten für Frontend-Kompatibilität
+    const convertedData = data.map((quote: any) => ({
+      id: quote.id,
+      firstName: quote.firstName,
+      lastName: quote.lastName,
+      first_name: quote.firstName,
+      last_name: quote.lastName,
+      email: quote.email,
+      phone: quote.phone,
+      street: quote.address,
+      city: quote.city,
+      postalCode: quote.postalCode,
+      
+      // Comprehensive PV data
+      annualConsumptionKwh: quote.annualConsumptionKwh,
+      electricityPriceCtPerKwh: quote.electricityPriceCtPerKwh,
+      totalKwp: quote.totalKwp,
+      total_kwp: quote.totalKwp,
+      estimatedTotalModules: quote.estimatedTotalModules,
+      annualPvKwh: quote.annualPvKwh,
+      batteryKwh: quote.batteryKwh,
+      
+      // EV data
+      evKmPerYear: quote.evKmPerYear,
+      evKwhPer100km: quote.evKwhPer100km,
+      evHomeChargingShare: quote.evHomeChargingShare,
+      evChargerPowerKw: quote.evChargerPowerKw,
+      evAnnualConsumptionKwh: quote.evAnnualConsumptionKwh,
+      
+      // Heat pump
+      heatPumpConsumptionKwh: quote.heatPumpConsumptionKwh,
+      
+      // Results
+      autarkiePct: quote.autarkiePct,
+      autarkie_pct: quote.autarkiePct,
+      eigenverbrauchPct: quote.eigenverbrauchPct,
+      annualSavingsEur: quote.annualSavingsEur,
+      annual_savings_eur: quote.annualSavingsEur,
+      co2SavingsTons: quote.co2SavingsTons,
+      paybackTimeYears: quote.paybackTimeYears,
+      
+      // Roof data
+      roofFaces: quote.roofFaces,
+      roofType: quote.roofType,
+      totalRoofArea: quote.totalRoofArea,
+      usableRoofArea: quote.usableRoofArea,
+      averageGti: quote.averageGti,
+      averageOrientation: quote.averageOrientation,
+      averageTilt: quote.averageTilt,
+      
+      status: quote.status,
+      created_at: quote.createdAt
+    }));
 
     return NextResponse.json({
-      data,
+      data: convertedData,
       pagination: {
         page,
         limit,
-        total: count || 0,
-        pages: Math.ceil((count || 0) / limit)
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       }
     });
 
@@ -194,7 +237,14 @@ export async function GET(request: NextRequest) {
     console.error('API error:', error);
     return NextResponse.json(
       { error: 'Interner Serverfehler' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        }
+      }
     );
   }
 }
