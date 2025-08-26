@@ -52,5 +52,17 @@
       "destination": "https://a4plus.eu/$1",
       "permanent": true
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/ping-search",
+      "schedule": "0 0 * * *"
+    }
   ]
 }

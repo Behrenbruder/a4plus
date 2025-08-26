@@ -99,22 +99,44 @@ function ProductRow({
 }
 
 /** Produktkarte (Beschattung) */
-function ProductCard({
+type ProductCardProps = {
+  href: string;
+  title: string;
+  img: string;
+  alt: string;
+  fillMode?: "contain" | "cover"; // <-- Zusatzprop
+};
+
+export function ProductCard({
   href,
   title,
   img,
   alt,
-}: { href: string; title: string; img: string; alt: string }) {
+  fillMode = "contain", // Standard: alles sichtbar
+}: ProductCardProps) {
   return (
     <Link
       href={href}
       className="group block rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-md transition"
     >
-      <div className="relative aspect-[4/3] bg-gray-50">
-        <Image src={img} alt={alt} fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover" />
+      {/* Bildcontainer */}
+      <div className="relative aspect-[4/3] bg-gray-50 flex items-center justify-center">
+        <Image
+          src={img}
+          alt={alt}
+          fill
+          sizes="(min-width: 1024px) 25vw, 50vw"
+          className={`p-2 transition-transform duration-300 group-hover:scale-105 ${
+            fillMode === "cover" ? "object-cover p-0" : "object-contain"
+          }`}
+        />
       </div>
+
+      {/* Titel */}
       <div className="px-4 py-3">
-        <div className="font-medium text-gray-800 group-hover:text-emerald-700">{title}</div>
+        <h3 className="font-medium text-gray-800 group-hover:text-emerald-700">
+          {title}
+        </h3>
       </div>
     </Link>
   );
@@ -300,7 +322,7 @@ export default function FensterUndBeschattungPage() {
             </ul>
           </ProductRow>
 
-          <ProductRow title="Kömmerling Premidoor 76 Standard" img="/images/fenster/Premidoor.jpg" imgContain>
+          <ProductRow title="Kömmerling Premidoor 76 Standard" img="/images/fenster/Premidoor.jpg" imgCover>
             <ul className="list-disc pl-5 space-y-1">
               <li>Profilstabilität für geschosshohe Elemente bis 2,60 m</li>
               <li>Uf = 1,4 W/(m²K), mit Ug = 0,5 W/m²K und Warmer Kante</li>
@@ -362,29 +384,31 @@ export default function FensterUndBeschattungPage() {
           </div>
 
           {/* Produktgrid Raffstore */}
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap5 sm:grid-cols-2">
             <ProductCard
               href="/produkte/rollaeden/raffstore/retrolux"
               title="RETROLux Tageslichtraffstore"
-              img="/images/raffstore/retrolux.jpg"
+              img="/images/beschattung/retro.jpg"
               alt="RETROLux Tageslichtraffstore"
+              fillMode="cover"
+
             />
             <ProductCard
               href="/produkte/rollaeden/raffstore/vorbau-unterputz"
               title="Vorbau Unterputz"
-              img="/images/raffstore/vorbau-unterputz.jpg"
+              img="/images/beschattung/Raff S Putz.jpg"
               alt="Vorbau Unterputz Raffstore"
             />
             <ProductCard
               href="/produkte/rollaeden/raffstore/sichtkasten"
               title="Sichtkasten"
-              img="/images/raffstore/sichtkasten.jpg"
+              img="/images/beschattung/Raff S Kasten.jpg"
               alt="Sichtkasten Raffstore"
             />
             <ProductCard
               href="/produkte/rollaeden/raffstore/aufsatzkasten"
               title="Aufsatzkasten"
-              img="/images/raffstore/aufsatzkasten.jpg"
+              img="/images/beschattung/Resa-Kasten.jpg"
               alt="Aufsatzkasten Raffstore"
             />
           </div>
@@ -393,10 +417,10 @@ export default function FensterUndBeschattungPage() {
         {/* Blinos – klemmbare Lösung */}
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-            <Image src="/images/blinos/hero.jpg" alt="Blinos Rollo" fill className="object-cover" />
+            <Image src="/images/beschattung/außenklemmrollo.png" alt="Blinos Rollo" fill className="object-cover" />
           </div>
           <div>
-            <h3 className="text-2xl md:text-3xl font-semibold tracking-tight">Blinos‑Rollos (zum Klemmen)</h3>
+            <h3 className="text-2xl md:text-3xl font-semibold tracking-tight">Außenklemmrollos</h3>
             <p className="mt-2 text-gray-700">
               Das einzige <strong>außenliegende Sonnenschutz‑Rollo zum Klemmen</strong> –
               werkzeuglos montiert, ohne Bohren. Ideal für Mietwohnungen und schnelle Nachrüstung:

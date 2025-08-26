@@ -1,11 +1,24 @@
 import { revalidatePath } from "next/cache";
 import LocationMap from "@/components/LocationMap";
+import { ProductInterest } from "@/lib/crm-types";
 
 async function send(formData: FormData) {
   "use server";
+  
+  console.log('📝 Kontaktformular-Submission gestartet');
   const name = String(formData.get("name") || "");
   const email = String(formData.get("email") || "");
   const message = String(formData.get("message") || "");
+  
+  // Produktinteressen aus dem Formular extrahieren
+  const productInterests: ProductInterest[] = [];
+  const allProductInterests: ProductInterest[] = ['pv', 'speicher', 'waermepumpe', 'fenster', 'tueren', 'daemmung', 'rollaeden'];
+  
+  allProductInterests.forEach(product => {
+    if (formData.get(`product_${product}`) === 'on') {
+      productInterests.push(product);
+    }
+  });
   
   try {
     // CRM-Integration
@@ -35,7 +48,7 @@ async function send(formData: FormData) {
         lead_source: 'Kontaktformular',
         estimated_value: null,
         probability: 25, // Standard für Kontaktformular
-        product_interests: [], // Leeres Array für Kontaktformular
+        product_interests: productInterests, // Ausgewählte Produktinteressen
         priority: 3, // Normale Priorität
         tags: ['kontaktformular', 'website'],
         notes: `Kontaktformular-Anfrage: ${message}`,
@@ -115,6 +128,44 @@ export default function KontaktPage() {
           <form action={send} className="mt-6 space-y-4">
             <input name="name" required placeholder="Ihr Name" className="w-full border rounded-xl px-4 py-3" />
             <input type="email" name="email" required placeholder="Ihre E-Mail" className="w-full border rounded-xl px-4 py-3" />
+            
+            {/* Produktkategorien-Auswahl */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Welche Produkte interessieren Sie? (Mehrfachauswahl möglich)
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" name="product_pv" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-sm">☀️ PV-Anlagen</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" name="product_speicher" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-sm">🔋 Speicher</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" name="product_waermepumpe" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-sm">🌡️ Wärmepumpen</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" name="product_fenster" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-sm">🪟 Fenster</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" name="product_tueren" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-sm">🚪 Türen</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" name="product_daemmung" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-sm">🏠 Dämmung</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" name="product_rollaeden" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span className="text-sm">🎚️ Rolläden</span>
+                </label>
+              </div>
+            </div>
+            
             <textarea name="message" required placeholder="Ihr Anliegen" className="w-full border rounded-xl px-4 py-3 min-h-[140px]"></textarea>
             <button className="btn-primary" type="submit">Absenden</button>
           </form>

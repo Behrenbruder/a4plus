@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET(request: NextRequest) {
   try {
     console.log('Testing Supabase connection for customers...')
+    
+    // Check environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing Supabase configuration',
+        config: {
+          url: supabaseUrl ? '✓ Configured' : '❌ Missing',
+          serviceKey: supabaseServiceKey ? '✓ Configured' : '❌ Missing'
+        }
+      }, { status: 500 })
+    }
+
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
     // Test 1: Basic connection
     const { data: connectionTest, error: connectionError } = await supabase
@@ -15,7 +33,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Connection failed',
-        details: connectionError
+        details: connectionError,
+        config: {
+          url: '✓ Configured',
+          serviceKey: '✓ Configured'
+        }
       }, { status: 500 })
     }
 
@@ -33,53 +55,25 @@ export async function GET(request: NextRequest) {
         success: false,
         error: 'Select failed',
         details: selectError,
-        connectionWorked: true
+        connectionWorked: true,
+        config: {
+          url: '✓ Configured',
+          serviceKey: '✓ Configured'
+        }
       }, { status: 500 })
     }
 
     console.log('Select test passed, data:', selectTest)
 
-    // Test 3: Try to insert test data
-    const testCustomer = {
-      first_name: 'Debug',
-      last_name: 'Test',
-      email: `debug-test-${Date.now()}@example.com`,
-      status: 'lead'
-    }
-
-    const { data: insertTest, error: insertError } = await supabase
-      .from('customers')
-      .insert([testCustomer])
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error('Insert test failed:', insertError)
-      return NextResponse.json({
-        success: false,
-        error: 'Insert failed',
-        details: insertError,
-        connectionWorked: true,
-        selectWorked: true
-      }, { status: 500 })
-    }
-
-    console.log('Insert test passed, data:', insertTest)
-
-    // Clean up test data
-    if (insertTest?.id) {
-      await supabase
-        .from('customers')
-        .delete()
-        .eq('id', insertTest.id)
-    }
-
     return NextResponse.json({
       success: true,
-      message: 'All tests passed',
+      message: 'Connection and select tests passed',
       connectionTest: !!connectionTest,
       selectTest: selectTest?.length || 0,
-      insertTest: !!insertTest
+      config: {
+        url: '✓ Configured',
+        serviceKey: '✓ Configured'
+      }
     })
 
   } catch (error) {
@@ -87,7 +81,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: 'Unexpected error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      config: {
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL ? '✓ Configured' : '❌ Missing',
+        serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '✓ Configured' : '❌ Missing'
+      }
     }, { status: 500 })
   }
 }

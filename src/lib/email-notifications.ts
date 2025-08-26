@@ -379,15 +379,14 @@ ${EMAIL_CONFIG.from}
   console.log('📧 Kundenanfrage Bestätigung an', customerData.email);
   console.log('Betreff:', subject);
 
-  // E-Mail-Service verwenden
-  const { sendEmail } = await import('./email-service');
-  await sendEmail({
+  // E-Mail senden und in Datenbank speichern
+  await sendAndSaveEmail({
     to: customerData.email,
     from: EMAIL_CONFIG.from,
     subject: subject,
     text: textContent,
     html: htmlContent
-  });
+  }, customerData.id, 'outbound');
 }
 
 // Legacy-Funktionen für Rückwärtskompatibilität
@@ -397,6 +396,54 @@ export async function sendNotificationEmail(quoteData: PVQuoteData): Promise<voi
 
 export async function sendCustomerConfirmationEmail(quoteData: PVQuoteData): Promise<void> {
   return sendPVQuoteConfirmationEmail(quoteData);
+}
+
+// Hilfsfunktion zum Senden und Speichern von E-Mails
+async function sendAndSaveEmail(
+  emailData: {
+    to: string;
+    from: string;
+    subject: string;
+    text: string;
+    html: string;
+  },
+  customerId?: string,
+  direction: 'inbound' | 'outbound' = 'outbound'
+): Promise<void> {
+  // E-Mail senden
+  const { sendEmail } = await import('./email-service');
+  await sendEmail(emailData);
+
+  // In Datenbank speichern, falls customerId vorhanden
+  if (customerId) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      await supabase
+        .from('contact_history')
+        .insert([{
+          customer_id: customerId,
+          contact_type: 'email',
+          subject: emailData.subject,
+          content: emailData.text,
+          direction: direction,
+          metadata: {
+            from_email: emailData.from,
+            to_email: emailData.to,
+            sent_via: 'email_notification_system'
+          }
+        }]);
+
+      console.log(`📧 E-Mail gespeichert in contact_history für Kunde ${customerId}`);
+    } catch (error) {
+      console.error('Fehler beim Speichern der E-Mail in contact_history:', error);
+      // Fehler nicht weiterwerfen, da E-Mail bereits versendet wurde
+    }
+  }
 }
 
 // Export der E-Mail-Konfiguration für andere Module

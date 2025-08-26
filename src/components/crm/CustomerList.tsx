@@ -56,7 +56,7 @@ export default function CustomerList({
       }
 
       const data = await response.json()
-      let fetchedCustomers = data.customers || []
+      const fetchedCustomers = data.customers || []
 
       // Apply filters and search
       let filteredCustomers = fetchedCustomers

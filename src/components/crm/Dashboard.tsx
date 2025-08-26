@@ -18,7 +18,8 @@ import {
   LeadPipelineStats, 
   ProductInterestStats, 
   MonthlyMetrics,
-  UserRole 
+  UserRole,
+  Customer
 } from '@/lib/crm-types'
 
 interface DashboardProps {
@@ -82,10 +83,10 @@ export default function Dashboard({ userRole }: DashboardProps) {
 
       // Calculate real statistics
       const totalCustomers = customers.length
-      const totalLeads = customers.filter((c: any) => ['neu', 'qualifiziert', 'angebot_erstellt', 'in_verhandlung'].includes(c.lead_status)).length
-      const activeProjects = customers.filter((c: any) => c.lead_status === 'in_verhandlung').length
-      const wonDeals = customers.filter((c: any) => c.lead_status === 'gewonnen')
-      const monthlyRevenue = wonDeals.reduce((sum: number, c: any) => sum + (c.estimated_value || 0), 0)
+      const totalLeads = customers.filter((c: Customer) => ['neu', 'qualifiziert', 'angebot_erstellt', 'in_verhandlung'].includes(c.lead_status)).length
+      const activeProjects = customers.filter((c: Customer) => c.lead_status === 'in_verhandlung').length
+      const wonDeals = customers.filter((c: Customer) => c.lead_status === 'gewonnen')
+      const monthlyRevenue = wonDeals.reduce((sum: number, c: Customer) => sum + (c.estimated_value || 0), 0)
       const averageDealSize = wonDeals.length > 0 ? monthlyRevenue / wonDeals.length : 0
       const conversionRate = totalCustomers > 0 ? (wonDeals.length / totalCustomers) * 100 : 0
 

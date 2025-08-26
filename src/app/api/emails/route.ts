@@ -1,89 +1,87 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase'
-import { blockWebDatabaseAccess } from '@/lib/security'
+import { NextRequest, NextResponse } from 'next/server';
+import { sendEmail, testSMTPConnection, getEmailConfig } from '@/lib/email-service';
 
-export async function GET(request: NextRequest) {
-  // Block web access for security
-  const securityCheck = blockWebDatabaseAccess(request)
-  if (securityCheck) return securityCheck
-
+export async function POST(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient()
-    const { searchParams } = new URL(request.url)
-    const customerId = searchParams.get('customer_id')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const body = await request.json();
+    const { to, subject, text, html } = body;
 
-    let query = supabase
-      .from('email_logs')
-      .select(`
-        *,
-        customers (
-          first_name,
-          last_name,
-          email
-        )
-      `, { count: 'exact' })
-      .order('created_at', { ascending: false })
-
-    // Filter by customer if specified
-    if (customerId) {
-      query = query.eq('customer_id', customerId)
+    // Validiere erforderliche Felder
+    if (!to || !subject || (!text && !html)) {
+      return NextResponse.json(
+        { error: 'Fehlende erforderliche Felder: to, subject, und text oder html' },
+        { status: 400 }
+      );
     }
 
-    // Add pagination
-    const from = (page - 1) * limit
-    const to = from + limit - 1
-    query = query.range(from, to)
-
-    const { data, error, count } = await query
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+    // Sende E-Mail
+    await sendEmail({
+      to,
+      from: process.env.SMTP_FROM || 'info@a4plus.eu',
+      subject,
+      text: text || '',
+      html: html || text || ''
+    });
 
     return NextResponse.json({
-      data,
-      pagination: {
-        page,
-        limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
-      }
-    })
+      success: true,
+      message: 'E-Mail erfolgreich gesendet'
+    });
+
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('E-Mail API Fehler:', error);
+    return NextResponse.json(
+      { 
+        error: 'Fehler beim E-Mail-Versand',
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(request: NextRequest) {
-  // Block web access for security
-  const securityCheck = blockWebDatabaseAccess(request)
-  if (securityCheck) return securityCheck
-
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient()
-    const body = await request.json()
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
 
-    const { data, error } = await supabase
-      .from('email_logs')
-      .insert([body])
-      .select(`
-        *,
-        customers (
-          first_name,
-          last_name,
-          email
-        )
-      `)
-      .single()
+    if (action === 'test') {
+      // Teste SMTP-Verbindung
+      const isConnected = await testSMTPConnection();
+      const config = getEmailConfig();
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({
+        connected: isConnected,
+        config: {
+          host: config.host,
+          port: config.port,
+          user: config.user,
+          enabled: config.enabled
+        }
+      });
     }
 
-    return NextResponse.json({ data }, { status: 201 })
+    // Standard-Antwort mit E-Mail-Konfiguration
+    const config = getEmailConfig();
+    return NextResponse.json({
+      service: 'E-Mail Service',
+      status: 'aktiv',
+      config: {
+        host: config.host,
+        port: config.port,
+        user: config.user,
+        enabled: config.enabled
+      }
+    });
+
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('E-Mail API GET Fehler:', error);
+    return NextResponse.json(
+      { 
+        error: 'Fehler beim Abrufen der E-Mail-Konfiguration',
+        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+      },
+      { status: 500 }
+    );
   }
 }
