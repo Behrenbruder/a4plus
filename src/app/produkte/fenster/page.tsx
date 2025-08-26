@@ -322,7 +322,7 @@ export default function FensterUndBeschattungPage() {
             </ul>
           </ProductRow>
 
-          <ProductRow title="Kömmerling Premidoor 76 Standard" img="/images/fenster/Premidoor.jpg" imgCover>
+          <ProductRow title="Kömmerling Premidoor 76 Standard" img="/images/fenster/Premidoor.jpg" imgContain>
             <ul className="list-disc pl-5 space-y-1">
               <li>Profilstabilität für geschosshohe Elemente bis 2,60 m</li>
               <li>Uf = 1,4 W/(m²K), mit Ug = 0,5 W/m²K und Warmer Kante</li>
