@@ -93,7 +93,7 @@ export default function Dashboard({ userRole }: DashboardProps) {
       // Get current month leads
       const currentMonth = new Date().getMonth()
       const currentYear = new Date().getFullYear()
-      const leadsThisMonth = customers.filter((c: any) => {
+      const leadsThisMonth = customers.filter((c: Customer) => {
         const createdDate = new Date(c.created_at)
         return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear
       }).length
@@ -119,7 +119,7 @@ export default function Dashboard({ userRole }: DashboardProps) {
         verloren: 0
       }
 
-      customers.forEach((customer: any) => {
+      customers.forEach((customer: Customer) => {
         if (pipelineData.hasOwnProperty(customer.lead_status)) {
           pipelineData[customer.lead_status as keyof typeof pipelineData]++
         }
@@ -138,7 +138,7 @@ export default function Dashboard({ userRole }: DashboardProps) {
         rollaeden: 0
       }
 
-      customers.forEach((customer: any) => {
+      customers.forEach((customer: Customer) => {
         if (customer.product_interests && Array.isArray(customer.product_interests)) {
           customer.product_interests.forEach((interest: string) => {
             if (productData.hasOwnProperty(interest)) {

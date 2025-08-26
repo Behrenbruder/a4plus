@@ -14,7 +14,7 @@ export async function GET() {
     targets.map((t) => fetch(t, { method: "GET", cache: "no-store" }))
   );
 
-  const ok = results.every((r) => r.status === "fulfilled" && (r as any).value.ok);
+  const ok = results.every((r) => r.status === "fulfilled" && (r as PromiseFulfilledResult<Response>).value.ok);
 
   return NextResponse.json({
     ok,

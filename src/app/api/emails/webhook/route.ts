@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const recipientEmail = extractEmailAddress(to);
 
     // Find or create customer based on sender email
-    let customer = await findOrCreateCustomer(senderEmail);
+    const customer = await findOrCreateCustomer(senderEmail);
     
     if (!customer) {
       console.error('❌ Failed to find or create customer');
