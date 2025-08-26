@@ -107,7 +107,7 @@ type ProductCardProps = {
   fillMode?: "contain" | "cover"; // <-- Zusatzprop
 };
 
-export function ProductCard({
+function ProductCard({
   href,
   title,
   img,
