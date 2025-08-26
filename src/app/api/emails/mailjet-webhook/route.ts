@@ -37,18 +37,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function processIncomingEmail(event: any) {
+async function processIncomingEmail(event: Record<string, unknown>) {
   try {
-    const {
-      from_email,
-      from_name,
-      email: to_email,
-      subject,
-      text_part,
-      html_part,
-      MessageID,
-      time
-    } = event;
+    const from_email = event.from_email as string;
+    const from_name = event.from_name as string;
+    const to_email = event.email as string;
+    const subject = event.subject as string;
+    const text_part = event.text_part as string;
+    const html_part = event.html_part as string;
+    const MessageID = event.MessageID as string;
+    const time = event.time as number;
 
     // Nur @a4plus.eu E-Mails verarbeiten
     if (!to_email?.includes('@a4plus.eu')) {
@@ -179,15 +177,13 @@ async function findOrCreateCustomer(email: string, name?: string, isInternal: bo
   }
 }
 
-async function processOutgoingEmail(event: any) {
+async function processOutgoingEmail(event: Record<string, unknown>) {
   try {
-    const {
-      email: from_email,
-      Destination: to_email,
-      Subject: subject,
-      MessageID,
-      time
-    } = event;
+    const from_email = event.email as string;
+    const to_email = event.Destination as string;
+    const subject = event.Subject as string;
+    const MessageID = event.MessageID as string;
+    const time = event.time as number;
 
     console.log(`📤 Processing outgoing email from ${from_email} to ${to_email}`);
 
@@ -239,7 +235,7 @@ async function processOutgoingEmail(event: any) {
   }
 }
 
-async function processEmailDelivered(event: any) {
+async function processEmailDelivered(event: Record<string, unknown>) {
   try {
     const { MessageID, time } = event;
     
