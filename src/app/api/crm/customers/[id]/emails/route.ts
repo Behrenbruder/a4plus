@@ -18,8 +18,9 @@ interface EmailMessage {
 // GET /api/crm/customers/[id]/emails - Fetch email history for a customer
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { params } = context
   try {
     const customerId = params.id
 
@@ -102,8 +103,9 @@ export async function GET(
 // POST /api/crm/customers/[id]/emails - Send new email to customer
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { params } = context
   try {
     const customerId = params.id
     const body = await request.json()
