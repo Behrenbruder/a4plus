@@ -1,21 +1,13 @@
 import Link from "next/link";
+import { LogoBadge } from "@/components/LogoBadge";
+
 
 export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur-sm shadow-sm">
       <div className="container flex items-center justify-between py-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <span
-            className="inline-flex items-center justify-center rounded-2xl px-3 py-2 text-white"
-            style={{ background: "linear-gradient(135deg,#10b981,#059669)" }}
-          >
-            <span className="text-xl font-bold tracking-tight">a4+</span>
-          </span>
-          <span className="hidden sm:block text-m text-gray-600">
-            <b>Ihr Effizienzstandard</b>
-          </span>
-        </Link>
+        <LogoBadge className="text-[0.8em]" />
 
         {/* Navigation */}
         <nav className="flex gap-6 text-sm font-medium text-gray-700">

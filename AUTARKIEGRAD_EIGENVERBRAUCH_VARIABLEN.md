@@ -49,21 +49,6 @@ selfConsumption = dispatch.selfConsumptionKWh / annualPVKWh
   - 96 Viertelstundenwerte pro Tag
   - 3 Tagestypen: WT (Werktag), SA (Samstag), FT (Feiertag/Sonntag)
 
-## 3. PV-Erzeugungsprofil (8760 Stunden)
-
-### PV-Profil-Generierung
-- **`hourlyPVFromAnnual(annualPVKWh)`**: Stündliches PV-Profil
-- **Monatliche Verteilung**: `PV_MONTHLY_SHARE` (12 Werte)
-  - `[2, 4, 8, 10, 12, 13, 13, 12, 9, 7, 5, 5]` (in %)
-- **Tageslichtstunden**: `DAYLIGHT_HOURS` (12 Werte)
-  - `[8, 10, 12, 14, 16, 17, 16.5, 15, 13, 11, 8.5, 7.5]`
-- **Tage pro Monat**: `DAYS_IN_MONTH` (12 Werte)
-  - `[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]`
-
-### Tägliche PV-Kurve
-- **Sinus-Kurve**: `Math.pow(Math.sin(Math.PI * x), 2)` zwischen Sonnenauf- und -untergang
-- **Sonnenaufgang**: `12 - daylight / 2`
-- **Sonnenuntergang**: `12 + daylight / 2`
 
 ## 4. Batterie-Dispatch-Parameter
 

@@ -9,9 +9,9 @@ export default function Home() {
   return (
     <div>
 
-      {/* HERO */}
-      <section className="relative min-h-[72vh] flex items-center justify-center text-center text-white overflow-hidden">
-        {/* LCP-optimized Hero Image */}
+      {/* HERO – stabil und fokussiert */}
+      <section className="relative min-h-[60svh] md:min-h-[72vh] flex items-center justify-center text-center text-white overflow-hidden">
+        {/* Bild als <Image> mit responsive Fokus */}
         <Image
           src="/images/landing/Haus.jpg"
           alt="Modernes Haus mit Photovoltaikanlage - Arteplus Energieeffizienz"
@@ -19,23 +19,35 @@ export default function Home() {
           priority
           quality={85}
           sizes="100vw"
-          className="object-cover object-center"
-          style={{
-            objectPosition: "center -370px"
-          }}
+          className="
+            object-cover
+            object-[50%_20%]     /* Handy: Fokus etwas höher */
+            sm:object-[50%_38%]
+            md:object-[50%_35%]  /* Tablet: noch ein Stück höher */
+            lg:object-[50%_80%]    /* Desktop: zentriert */
+          "
         />
+
+        {/* Overlay für Lesbarkeit */}
         <div className="absolute inset-0 bg-black/40 z-10" />
+
+        {/* Inhalt */}
         <div className="relative z-20 px-4 max-w-3xl">
           <h1 className="text-4xl md:text-6xl font-bold mb-4">Ihr Haus – Rundum Effizient</h1>
           <p className="text-lg md:text-xl text-gray-200">
             Fenster, Türen, Dämmung, PV, Speicher & Wärmepumpen – fair beraten, sauber montiert.
           </p>
           <div className="mt-6 flex justify-center gap-3">
-            <Link href="/pv-rechner" className="btn-primary bg-white text-emerald-600 hover:bg-gray-100">PV-Rechner starten</Link>
-            <Link href="/kontakt" className="btn-primary">Angebot anfordern</Link>
+            <Link href="/pv-rechner" className="btn-primary bg-white text-emerald-600 hover:bg-gray-100">
+              PV‑Rechner starten
+            </Link>
+            <Link href="/kontakt" className="btn-primary">
+              Angebot anfordern
+            </Link>
           </div>
         </div>
       </section>
+
 
 
       {/* PRODUKT-ICONS GRID */}

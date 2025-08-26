@@ -9,8 +9,7 @@ import {
   EyeIcon,
   PencilIcon,
   TrashIcon,
-  PhoneIcon,
-  EnvelopeIcon
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 import { Customer, LeadStatus, ProductInterest, CustomerFilter } from '@/lib/crm-types'
 
@@ -19,13 +18,15 @@ interface CustomerListProps {
   onCustomerEdit?: (customer: Customer) => void
   onCustomerDelete?: (customerId: string) => void
   onNewCustomer?: () => void
+  onEmailHistory?: (customer: Customer) => void
 }
 
 export default function CustomerList({ 
   onCustomerSelect, 
   onCustomerEdit, 
   onCustomerDelete, 
-  onNewCustomer 
+  onNewCustomer,
+  onEmailHistory
 }: CustomerListProps) {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,95 +43,26 @@ export default function CustomerList({
   const fetchCustomers = async () => {
     setLoading(true)
     try {
-      // Mock data - in production, this would be an API call
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      const mockCustomers: Customer[] = [
-        {
-          id: '1',
-          created_at: '2024-01-15T10:00:00Z',
-          updated_at: '2024-01-20T14:30:00Z',
-          first_name: 'Max',
-          last_name: 'Mustermann',
-          email: 'max.mustermann@email.com',
-          phone: '+49 123 456789',
-          address: 'Musterstraße 123',
-          city: 'Berlin',
-          postal_code: '10115',
-          country: 'Deutschland',
-          notes: 'Interessiert an PV-Anlage für Einfamilienhaus',
-          lead_status: 'qualifiziert',
-          lead_source: 'Website',
-          estimated_value: 25000,
-          probability: 75,
-          expected_close_date: '2024-02-15',
-          last_contact_date: '2024-01-18T09:15:00Z',
-          next_follow_up_date: '2024-01-25T10:00:00Z',
-          product_interests: ['pv', 'speicher'],
-          priority: 2,
-          tags: ['einfamilienhaus', 'neubau'],
-          gdpr_consent: true,
-          marketing_consent: true
+      // Fetch real data from API
+      const response = await fetch('/api/crm/customers', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          id: '2',
-          created_at: '2024-01-10T08:30:00Z',
-          updated_at: '2024-01-22T16:45:00Z',
-          first_name: 'Anna',
-          last_name: 'Schmidt',
-          email: 'anna.schmidt@email.com',
-          phone: '+49 987 654321',
-          address: 'Hauptstraße 456',
-          city: 'München',
-          postal_code: '80331',
-          country: 'Deutschland',
-          notes: 'Wärmepumpe für Altbausanierung',
-          lead_status: 'angebot_erstellt',
-          lead_source: 'Empfehlung',
-          estimated_value: 18000,
-          probability: 60,
-          expected_close_date: '2024-02-28',
-          last_contact_date: '2024-01-20T11:30:00Z',
-          next_follow_up_date: '2024-01-28T14:00:00Z',
-          product_interests: ['waermepumpe', 'daemmung'],
-          priority: 1,
-          tags: ['altbau', 'sanierung'],
-          gdpr_consent: true,
-          marketing_consent: false
-        },
-        {
-          id: '3',
-          created_at: '2024-01-05T14:20:00Z',
-          updated_at: '2024-01-19T10:15:00Z',
-          first_name: 'Peter',
-          last_name: 'Weber',
-          email: 'peter.weber@email.com',
-          phone: '+49 555 123456',
-          address: 'Gartenweg 789',
-          city: 'Hamburg',
-          postal_code: '20095',
-          country: 'Deutschland',
-          notes: 'Fenster und Türen Austausch geplant',
-          lead_status: 'in_verhandlung',
-          lead_source: 'Google Ads',
-          estimated_value: 12000,
-          probability: 85,
-          expected_close_date: '2024-02-10',
-          last_contact_date: '2024-01-17T15:45:00Z',
-          next_follow_up_date: '2024-01-24T09:30:00Z',
-          product_interests: ['fenster', 'tueren'],
-          priority: 1,
-          tags: ['modernisierung'],
-          gdpr_consent: true,
-          marketing_consent: true
-        }
-      ]
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      let fetchedCustomers = data.customers || []
 
       // Apply filters and search
-      let filteredCustomers = mockCustomers
+      let filteredCustomers = fetchedCustomers
       
       if (searchTerm) {
-        filteredCustomers = filteredCustomers.filter(customer =>
+        filteredCustomers = filteredCustomers.filter((customer: Customer) =>
           customer.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           customer.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -139,14 +71,14 @@ export default function CustomerList({
       }
 
       if (filters.lead_status?.length) {
-        filteredCustomers = filteredCustomers.filter(customer =>
+        filteredCustomers = filteredCustomers.filter((customer: Customer) =>
           filters.lead_status!.includes(customer.lead_status)
         )
       }
 
       if (filters.product_interests?.length) {
-        filteredCustomers = filteredCustomers.filter(customer =>
-          customer.product_interests.some(interest => 
+        filteredCustomers = filteredCustomers.filter((customer: Customer) =>
+          customer.product_interests.some((interest: ProductInterest) => 
             filters.product_interests!.includes(interest)
           )
         )
@@ -206,18 +138,6 @@ export default function CustomerList({
     return new Date(dateString).toLocaleDateString('de-DE')
   }
 
-  const getProductIcons = (interests: ProductInterest[]) => {
-    const icons = {
-      pv: '☀️',
-      speicher: '🔋',
-      waermepumpe: '🌡️',
-      fenster: '🪟',
-      tueren: '🚪',
-      daemmung: '🏠',
-      rollaeden: '🎚️'
-    }
-    return interests.map(interest => icons[interest]).join(' ')
-  }
 
   if (loading) {
     return (
@@ -293,7 +213,6 @@ export default function CustomerList({
                   }}
                 >
                   <option value="neu">Neu</option>
-                  <option value="qualifiziert">Qualifiziert</option>
                   <option value="angebot_erstellt">Angebot erstellt</option>
                   <option value="in_verhandlung">In Verhandlung</option>
                   <option value="gewonnen">Gewonnen</option>
@@ -353,9 +272,6 @@ export default function CustomerList({
                   Produktinteressen
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Wert
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Nächster Follow-up
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -401,18 +317,7 @@ export default function CustomerList({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {getProductIcons(customer.product_interests)}
-                    </div>
-                    <div className="text-xs text-gray-500">
                       {customer.product_interests.join(', ')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {customer.estimated_value ? formatCurrency(customer.estimated_value) : '-'}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {customer.probability}% Wahrscheinlichkeit
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -439,20 +344,13 @@ export default function CustomerList({
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
-                      <a
-                        href={`tel:${customer.phone}`}
-                        className="text-green-600 hover:text-green-900"
-                        title="Anrufen"
-                      >
-                        <PhoneIcon className="h-4 w-4" />
-                      </a>
-                      <a
-                        href={`mailto:${customer.email}`}
+                      <button
+                        onClick={() => onEmailHistory?.(customer)}
                         className="text-purple-600 hover:text-purple-900"
-                        title="E-Mail senden"
+                        title="E-Mail Verlauf anzeigen"
                       >
-                        <EnvelopeIcon className="h-4 w-4" />
-                      </a>
+                        <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => onCustomerDelete?.(customer.id)}
                         className="text-red-600 hover:text-red-900"

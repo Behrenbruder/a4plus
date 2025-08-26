@@ -5,6 +5,7 @@ import CRMLayout from '@/components/crm/CRMLayout';
 import CustomerList from '@/components/crm/CustomerList';
 import CustomerForm from '@/components/crm/CustomerForm';
 import CustomerDetail from '@/components/crm/CustomerDetail';
+import EmailHistory from '@/components/crm/EmailHistory';
 import { Customer, ProductInterest, LeadStatus } from '@/lib/crm-types';
 import {
   PlusIcon,
@@ -20,6 +21,7 @@ export default function CustomersPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [showEmailHistory, setShowEmailHistory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
@@ -163,17 +165,27 @@ export default function CustomersPage() {
     setSelectedCustomer(customer);
     setShowDetail(true);
     setShowForm(false);
+    setShowEmailHistory(false);
   };
 
   const handleNewCustomer = () => {
     setSelectedCustomer(null);
     setShowForm(true);
     setShowDetail(false);
+    setShowEmailHistory(false);
   };
 
   const handleEditCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
     setShowForm(true);
+    setShowDetail(false);
+    setShowEmailHistory(false);
+  };
+
+  const handleEmailHistory = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowEmailHistory(true);
+    setShowForm(false);
     setShowDetail(false);
   };
 
@@ -300,6 +312,17 @@ export default function CustomersPage() {
           onClose={() => setShowForm(false)}
           onSave={handleCustomerSave}
           loading={loading}
+        />
+      </CRMLayout>
+    );
+  }
+
+  if (showEmailHistory && selectedCustomer) {
+    return (
+      <CRMLayout>
+        <EmailHistory
+          customer={selectedCustomer}
+          onBack={() => setShowEmailHistory(false)}
         />
       </CRMLayout>
     );
@@ -469,6 +492,7 @@ export default function CustomersPage() {
               onCustomerEdit={handleEditCustomer}
               onCustomerDelete={handleCustomerDelete}
               onNewCustomer={handleNewCustomer}
+              onEmailHistory={handleEmailHistory}
             />
           )}
         </div>

@@ -296,16 +296,15 @@ Diese E-Mail wurde automatisch generiert von ${EMAIL_CONFIG.companyName}
   console.log('📧 Kundenanfrage Benachrichtigung an', EMAIL_CONFIG.notificationEmail);
   console.log('Betreff:', subject);
 
-  // Hier würde in der Produktion ein echter E-Mail-Service integriert werden
-  if (process.env.EMAIL_SERVICE_ENABLED === 'true') {
-    // await sendEmail({
-    //   to: EMAIL_CONFIG.notificationEmail,
-    //   from: EMAIL_CONFIG.from,
-    //   subject: subject,
-    //   text: textContent,
-    //   html: htmlContent
-    // });
-  }
+  // E-Mail-Service verwenden
+  const { sendEmail } = await import('./email-service');
+  await sendEmail({
+    to: EMAIL_CONFIG.notificationEmail,
+    from: EMAIL_CONFIG.from,
+    subject: subject,
+    text: textContent,
+    html: htmlContent
+  });
 }
 
 // Bestätigungs-E-Mail an den Kunden für allgemeine Anfragen
@@ -380,16 +379,15 @@ ${EMAIL_CONFIG.from}
   console.log('📧 Kundenanfrage Bestätigung an', customerData.email);
   console.log('Betreff:', subject);
 
-  // Hier würde in der Produktion ein echter E-Mail-Service integriert werden
-  if (process.env.EMAIL_SERVICE_ENABLED === 'true') {
-    // await sendEmail({
-    //   to: customerData.email,
-    //   from: EMAIL_CONFIG.from,
-    //   subject: subject,
-    //   text: textContent,
-    //   html: htmlContent
-    // });
-  }
+  // E-Mail-Service verwenden
+  const { sendEmail } = await import('./email-service');
+  await sendEmail({
+    to: customerData.email,
+    from: EMAIL_CONFIG.from,
+    subject: subject,
+    text: textContent,
+    html: htmlContent
+  });
 }
 
 // Legacy-Funktionen für Rückwärtskompatibilität

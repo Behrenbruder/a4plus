@@ -18,10 +18,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('customers')
-      .select(`
-        *,
-        assigned_user:users!customers_assigned_to_fkey(first_name, last_name, email)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     // Apply filters
@@ -59,7 +56,7 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true });
 
     return NextResponse.json({
-      data,
+      customers: data,
       pagination: {
         page,
         limit,

@@ -1,11 +1,14 @@
+import Image from "next/image";
+
 export function LogoBadge({ className = "" }: { className?: string }) {
   return (
-    <span
-      className={`inline-flex items-center justify-center rounded-2xl px-3 py-1.5 font-bold text-white leading-none shadow-sm ${className}`}
-      style={{ background: "linear-gradient(135deg,#10b981,#059669)" }}
-      aria-label="a4 Plus"
-    >
-      a4+
-    </span>
+      <Image
+        src="/images/logo/logo.png"
+        alt="a4 Plus Logo"
+        width={120}      // Breite nach Bedarf anpassen
+        height={40}      // Höhe nach Bedarf anpassen
+        priority         // lädt das Logo bevorzugt
+        className="h-auto w-auto"
+      />
   );
 }

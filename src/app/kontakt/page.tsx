@@ -6,7 +6,102 @@ async function send(formData: FormData) {
   const name = String(formData.get("name") || "");
   const email = String(formData.get("email") || "");
   const message = String(formData.get("message") || "");
-  console.log({ name, email, message }); // TODO: Mailversand integrieren (Resend/SMTP)
+  
+  try {
+    // CRM-Integration
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    let customerId = null;
+
+    // Prüfe ob bereits ein Kunde mit dieser E-Mail existiert
+    const { data: existingCustomer } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (!existingCustomer) {
+      // Erstelle neuen CRM-Lead
+      const crmLeadData = {
+        first_name: name.split(' ')[0] || name,
+        last_name: name.split(' ').slice(1).join(' ') || '',
+        email: email,
+        country: 'Deutschland',
+        lead_status: 'neu', // Enum-Wert
+        lead_source: 'Kontaktformular',
+        estimated_value: null,
+        probability: 25, // Standard für Kontaktformular
+        product_interests: [], // Leeres Array für Kontaktformular
+        priority: 3, // Normale Priorität
+        tags: ['kontaktformular', 'website'],
+        notes: `Kontaktformular-Anfrage: ${message}`,
+        gdpr_consent: true,
+        marketing_consent: false
+      };
+
+      const { data: crmLead, error: crmError } = await supabase
+        .from('customers')
+        .insert([crmLeadData])
+        .select()
+        .single();
+
+      if (crmError) {
+        console.error('Fehler beim Erstellen des CRM-Leads:', crmError);
+      } else {
+        customerId = crmLead.id;
+        console.log('CRM-Lead erfolgreich erstellt:', crmLead.id);
+      }
+    } else {
+      customerId = existingCustomer.id;
+      console.log('Kunde existiert bereits im CRM:', existingCustomer.id);
+    }
+
+    // Erstelle Kontakt-Historie Eintrag
+    if (customerId) {
+      await supabase
+        .from('contact_history')
+        .insert([{
+          customer_id: customerId,
+          contact_type: 'website_formular',
+          subject: 'Kontaktformular-Anfrage',
+          content: message,
+          direction: 'inbound',
+          metadata: {
+            form_type: 'kontaktformular',
+            customer_name: name
+          }
+        }]);
+    }
+
+    // E-Mail-Benachrichtigung senden
+    const { sendCustomerInquiryNotificationEmail, sendCustomerInquiryConfirmationEmail } = await import('@/lib/email-notifications');
+    
+    const customerData = {
+      id: customerId?.toString() || Date.now().toString(),
+      first_name: name.split(' ')[0] || name,
+      last_name: name.split(' ').slice(1).join(' ') || '',
+      email: email,
+      message: message,
+      inquiry_type: 'Kontaktformular',
+      created_at: new Date().toISOString()
+    };
+
+    // Benachrichtigung an info@a4plus.eu
+    await sendCustomerInquiryNotificationEmail(customerData);
+    
+    // Bestätigung an Kunden
+    await sendCustomerInquiryConfirmationEmail(customerData);
+    
+    console.log('✅ Kontaktformular erfolgreich versendet und im CRM gespeichert:', { name, email, customerId });
+  } catch (error) {
+    console.error('❌ Fehler beim Verarbeiten der Kontaktformular-Anfrage:', error);
+    // Fehler nicht an den Benutzer weiterleiten, da das Formular trotzdem funktionieren soll
+  }
+  
   revalidatePath("/kontakt");
 }
 

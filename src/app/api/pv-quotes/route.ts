@@ -106,6 +106,103 @@ export async function POST(request: NextRequest) {
 
     console.log('Successfully saved to Supabase:', insertedData.id);
 
+    // CRM-Lead erstellen
+    try {
+      // Prüfe ob bereits ein Kunde mit dieser E-Mail existiert
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', insertedData.email)
+        .single();
+
+      if (!existingCustomer) {
+        // Erstelle neuen CRM-Lead
+        const crmLeadData = {
+          first_name: insertedData.first_name,
+          last_name: insertedData.last_name,
+          email: insertedData.email,
+          phone: insertedData.phone,
+          address: insertedData.address,
+          city: insertedData.city,
+          postal_code: insertedData.postal_code,
+          country: 'Deutschland',
+          lead_status: 'neu', // Enum-Wert
+          lead_source: 'PV-Rechner',
+          estimated_value: insertedData.total_kwp ? Math.round(insertedData.total_kwp * 1500) : null, // Schätzung: 1500€ pro kWp
+          probability: 35, // Höhere Wahrscheinlichkeit für PV-Rechner Leads
+          product_interests: ['pv'], // Korrigiert: 'pv' statt 'photovoltaik'
+          priority: insertedData.total_kwp && insertedData.total_kwp > 10 ? 1 : 2, // Hohe Priorität für große Anlagen
+          tags: ['pv-rechner', 'website'],
+          notes: `PV-Anfrage über Website-Rechner. Geplante Leistung: ${insertedData.total_kwp?.toFixed(2) || 'N/A'} kWp`,
+          gdpr_consent: true, // Implizit durch Formular-Nutzung
+          marketing_consent: false
+        };
+
+        const { data: crmLead, error: crmError } = await supabase
+          .from('customers')
+          .insert([crmLeadData])
+          .select()
+          .single();
+
+        if (crmError) {
+          console.error('Fehler beim Erstellen des CRM-Leads:', crmError);
+        } else {
+          console.log('CRM-Lead erfolgreich erstellt:', crmLead.id);
+
+          // Verknüpfe PV-Quote mit CRM-Lead
+          await supabase
+            .from('pv_quotes')
+            .update({ customer_id: crmLead.id })
+            .eq('id', insertedData.id);
+
+          // Erstelle Kontakt-Historie Eintrag
+          await supabase
+            .from('contact_history')
+            .insert([{
+              customer_id: crmLead.id,
+              contact_type: 'website_formular',
+              subject: 'PV-Anfrage über Website-Rechner',
+              content: `Kunde hat über den PV-Rechner eine Anfrage gestellt. Details: ${insertedData.total_kwp?.toFixed(2) || 'N/A'} kWp, ${insertedData.autarkie_pct?.toFixed(0) || 'N/A'}% Autarkie, ${insertedData.annual_savings_eur?.toFixed(0) || 'N/A'}€ jährliche Einsparung.`,
+              direction: 'inbound',
+              metadata: {
+                pv_quote_id: insertedData.id,
+                total_kwp: insertedData.total_kwp,
+                autarkie_pct: insertedData.autarkie_pct,
+                annual_savings_eur: insertedData.annual_savings_eur
+              }
+            }]);
+        }
+      } else {
+        console.log('Kunde existiert bereits im CRM:', existingCustomer.id);
+        
+        // Verknüpfe PV-Quote mit existierendem Kunden
+        await supabase
+          .from('pv_quotes')
+          .update({ customer_id: existingCustomer.id })
+          .eq('id', insertedData.id);
+
+        // Erstelle Kontakt-Historie Eintrag für existierenden Kunden
+        await supabase
+          .from('contact_history')
+          .insert([{
+            customer_id: existingCustomer.id,
+            contact_type: 'website_formular',
+            subject: 'Neue PV-Anfrage über Website-Rechner',
+            content: `Kunde hat erneut über den PV-Rechner eine Anfrage gestellt. Details: ${insertedData.total_kwp?.toFixed(2) || 'N/A'} kWp, ${insertedData.autarkie_pct?.toFixed(0) || 'N/A'}% Autarkie, ${insertedData.annual_savings_eur?.toFixed(0) || 'N/A'}€ jährliche Einsparung.`,
+            direction: 'inbound',
+            metadata: {
+              pv_quote_id: insertedData.id,
+              total_kwp: insertedData.total_kwp,
+              autarkie_pct: insertedData.autarkie_pct,
+              annual_savings_eur: insertedData.annual_savings_eur
+            }
+          }]);
+      }
+    } catch (crmError) {
+      console.error('Fehler bei CRM-Integration:', crmError);
+      // CRM-Fehler soll die Anfrage nicht blockieren
+    }
+
     // E-Mail-Benachrichtigung senden
     try {
       // Konvertiere Supabase-Daten für E-Mail-Funktion

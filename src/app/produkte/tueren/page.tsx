@@ -54,7 +54,7 @@ export default function TuerenPage() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: "url('/images/tueren/hero.jpg')",
+            backgroundImage: "url('/images/tueren/roka.webp')",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
@@ -68,10 +68,7 @@ export default function TuerenPage() {
             Sicherheit elegant verbinden – präzise gefertigt und sauber montiert.
           </p>
           <div className="mt-6 flex gap-3">
-            <a href={ROKA_URL} target="_blank" rel="noreferrer" className="btn-primary bg-white text-emerald-700 hover:bg-gray-100">
-              ROKA‑Konfigurator öffnen
-            </a>
-            <Link href="/kontakt" className="btn-ghost bg-white/10 hover:bg-white/20 text-white">
+            <Link href="/kontakt" className="btn-primary bg-white text-emerald-700 hover:bg-gray-100">
               Beratung anfragen
             </Link>
           </div>
@@ -88,11 +85,6 @@ export default function TuerenPage() {
           Konfigurator stellen wir Ihre Wunsch‑Tür zusammen und veredeln sie auf Wunsch mit
           Smart‑Home‑Komfort und barrierearmen Schwellen.
         </p>
-        <div className="mt-4">
-          <a href={ROKA_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 underline text-emerald-700">
-            → Direkt zum ROKA‑Konfigurator
-          </a>
-        </div>
       </header>
 
       {/* Vorteile aus deinen Bildern */}
@@ -137,9 +129,6 @@ export default function TuerenPage() {
             <li>RC2‑Ausstattung möglich</li>
             <li>Individuelle Farben – auch Feinstruktur & Holzdekor</li>
           </ul>
-          <div className="mt-4">
-            <a href={ROKA_URL} target="_blank" rel="noreferrer" className="btn-primary">Jetzt konfigurieren</a>
-          </div>
         </ProductRow>
 
         <ProductRow title="Aluminium – robust & wertig" img="/images/tueren/essential.webp" reverse>
@@ -165,26 +154,6 @@ export default function TuerenPage() {
             <li>Thermisch optimierte Verglasungen</li>
           </ul>
         </ProductRow>
-      </section>
-
-      {/* Konfigurator CTA */}
-      <section className="py-10 rounded-2xl bg-emerald-50 border border-emerald-100 px-6">
-        <div className="grid md:grid-cols-2 gap-6 items-center">
-          <div>
-            <h3 className="text-2xl font-semibold">Ihre Wunschtür – in wenigen Klicks</h3>
-            <p className="muted mt-2">
-              Modell, Farbe, Glas, Griff, Seitenteil & mehr: Planen Sie Ihre Tür im ROKA‑Konfigurator
-              und teilen Sie uns die ID – wir beraten zu Technik, Sicherheit und Preis.
-            </p>
-            <div className="mt-5 flex gap-3">
-              <a href={ROKA_URL} target="_blank" rel="noreferrer" className="btn-primary">ROKA‑Konfigurator öffnen</a>
-              <Link href="/kontakt" className="btn-ghost">Konfigurations‑ID senden</Link>
-            </div>
-          </div>
-          <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-emerald-100 bg-white">
-            <Image src="/images/tueren/konfi.png" alt="ROKA Konfigurator Vorschau" fill className="object-cover" />
-          </div>
-        </div>
       </section>
 
       {/* Abschluss‑CTA */}

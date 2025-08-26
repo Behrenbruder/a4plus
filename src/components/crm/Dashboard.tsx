@@ -65,47 +65,95 @@ export default function Dashboard({ userRole }: DashboardProps) {
 
   const fetchDashboardData = async () => {
     try {
-      // Mock data - in production, this would be API calls
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Fetch real data from API
+      const response = await fetch('/api/crm/customers', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const customers = data.customers || []
+
+      // Calculate real statistics
+      const totalCustomers = customers.length
+      const totalLeads = customers.filter((c: any) => ['neu', 'qualifiziert', 'angebot_erstellt', 'in_verhandlung'].includes(c.lead_status)).length
+      const activeProjects = customers.filter((c: any) => c.lead_status === 'in_verhandlung').length
+      const wonDeals = customers.filter((c: any) => c.lead_status === 'gewonnen')
+      const monthlyRevenue = wonDeals.reduce((sum: number, c: any) => sum + (c.estimated_value || 0), 0)
+      const averageDealSize = wonDeals.length > 0 ? monthlyRevenue / wonDeals.length : 0
+      const conversionRate = totalCustomers > 0 ? (wonDeals.length / totalCustomers) * 100 : 0
+
+      // Get current month leads
+      const currentMonth = new Date().getMonth()
+      const currentYear = new Date().getFullYear()
+      const leadsThisMonth = customers.filter((c: any) => {
+        const createdDate = new Date(c.created_at)
+        return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear
+      }).length
 
       setStats({
-        totalCustomers: 247,
-        totalLeads: 89,
-        activeProjects: 34,
-        monthlyRevenue: 125000,
-        conversionRate: 23.5,
-        averageDealSize: 15750,
-        leadsThisMonth: 28,
-        projectsCompleted: 156
+        totalCustomers,
+        totalLeads,
+        activeProjects,
+        monthlyRevenue,
+        conversionRate,
+        averageDealSize,
+        leadsThisMonth,
+        projectsCompleted: wonDeals.length
       })
 
-      setPipelineStats({
-        neu: 28,
-        qualifiziert: 15,
-        angebot_erstellt: 12,
-        in_verhandlung: 8,
-        gewonnen: 5,
-        verloren: 3
+      // Calculate pipeline stats
+      const pipelineData = {
+        neu: 0,
+        qualifiziert: 0,
+        angebot_erstellt: 0,
+        in_verhandlung: 0,
+        gewonnen: 0,
+        verloren: 0
+      }
+
+      customers.forEach((customer: any) => {
+        if (pipelineData.hasOwnProperty(customer.lead_status)) {
+          pipelineData[customer.lead_status as keyof typeof pipelineData]++
+        }
       })
 
-      setProductStats({
-        pv: 45,
-        speicher: 32,
-        waermepumpe: 28,
-        fenster: 18,
-        tueren: 15,
-        daemmung: 22,
-        rollaeden: 8
+      setPipelineStats(pipelineData)
+
+      // Calculate product interest stats
+      const productData = {
+        pv: 0,
+        speicher: 0,
+        waermepumpe: 0,
+        fenster: 0,
+        tueren: 0,
+        daemmung: 0,
+        rollaeden: 0
+      }
+
+      customers.forEach((customer: any) => {
+        if (customer.product_interests && Array.isArray(customer.product_interests)) {
+          customer.product_interests.forEach((interest: string) => {
+            if (productData.hasOwnProperty(interest)) {
+              productData[interest as keyof typeof productData]++
+            }
+          })
+        }
       })
 
+      setProductStats(productData)
+
+      // For monthly metrics, we'll use simplified data since we don't have historical data
       setMonthlyMetrics([
-        { month: 'Jan', newLeads: 32, convertedLeads: 8, revenue: 98000, projects: 12 },
-        { month: 'Feb', newLeads: 28, convertedLeads: 6, revenue: 87000, projects: 10 },
-        { month: 'Mar', newLeads: 35, convertedLeads: 9, revenue: 125000, projects: 15 },
-        { month: 'Apr', newLeads: 42, convertedLeads: 11, revenue: 156000, projects: 18 },
-        { month: 'Mai', newLeads: 38, convertedLeads: 10, revenue: 142000, projects: 16 },
-        { month: 'Jun', newLeads: 45, convertedLeads: 12, revenue: 178000, projects: 20 }
+        { month: 'Aktuell', newLeads: leadsThisMonth, convertedLeads: wonDeals.length, revenue: monthlyRevenue, projects: wonDeals.length }
       ])
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
