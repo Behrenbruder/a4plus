@@ -18,11 +18,11 @@ interface EmailMessage {
 // GET /api/crm/customers/[id]/emails - Fetch email history for a customer
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { params } = context
+  const { id } = await params
   try {
-    const customerId = params.id
+    const customerId = id
 
     // Create Supabase client
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -103,11 +103,11 @@ export async function GET(
 // POST /api/crm/customers/[id]/emails - Send new email to customer
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { params } = context
+  const { id } = await params
   try {
-    const customerId = params.id
+    const customerId = id
     const body = await request.json()
     
     const { subject, content } = body
