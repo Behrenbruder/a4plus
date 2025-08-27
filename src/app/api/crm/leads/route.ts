@@ -20,14 +20,7 @@ export async function GET(request: NextRequest) {
           first_name,
           last_name,
           email,
-          lead_status,
-          estimated_value,
-          probability,
-          product_interests,
-          priority,
-          next_follow_up_date,
-          assigned_to,
-          assigned_user:users!customers_assigned_to_fkey(first_name, last_name)
+          lead_status
         `)
         .order('created_at', { ascending: false });
 
@@ -55,9 +48,8 @@ export async function GET(request: NextRequest) {
         in_verhandlung: pipeline.in_verhandlung.length,
         gewonnen: pipeline.gewonnen.length,
         verloren: pipeline.verloren.length,
-        totalValue: pipelineData?.reduce((sum, c) => sum + (c.estimated_value || 0), 0) || 0,
-        averageValue: pipelineData?.length ? 
-          (pipelineData.reduce((sum, c) => sum + (c.estimated_value || 0), 0) / pipelineData.length) : 0,
+        totalValue: 0, // Not available in basic schema
+        averageValue: 0, // Not available in basic schema
         conversionRate: pipelineData?.length ? 
           ((pipeline.gewonnen.length / pipelineData.length) * 100) : 0
       };
@@ -84,15 +76,7 @@ export async function GET(request: NextRequest) {
           phone,
           city,
           lead_status,
-          estimated_value,
-          probability,
-          product_interests,
-          priority,
-          next_follow_up_date,
-          last_contact_date,
-          created_at,
-          assigned_to,
-          assigned_user:users!customers_assigned_to_fkey(first_name, last_name)
+          created_at
         `)
         .order('created_at', { ascending: false });
 

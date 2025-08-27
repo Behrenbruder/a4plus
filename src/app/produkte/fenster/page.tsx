@@ -151,7 +151,7 @@ export default function FensterUndBeschattungPage() {
       <section className="relative overflow-hidden rounded-3xl mt-4">
         <div className="absolute inset-0">
           <Image
-            src="/images/fenster/clean.jpg"
+            src="/images/fenster/hero.jpg"
             alt="Modernisiertes Haus mit effizienten Fenstern und Beschattung"
             fill
             priority

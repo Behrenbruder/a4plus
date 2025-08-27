@@ -1,16 +1,31 @@
 import Link from "next/link";
 import { LogoBadge } from "@/components/LogoBadge";
-
+import { useState } from "react";
 
 export function Header() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur-sm shadow-sm">
       <div className="container flex items-center justify-between py-4">
         {/* Logo */}
-        <LogoBadge className="text-[0.8em]" />
+        <Link href="/">
+          <LogoBadge className="text-[0.8em]" />
+        </Link>
 
-        {/* Navigation */}
-        <nav className="flex gap-6 text-sm font-medium text-gray-700">
+        {/* Mobile Menu Button */}
+        <button
+          className="md:hidden flex flex-col gap-1 p-2"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Menü öffnen/schließen"
+        >
+          <span className={`w-6 h-0.5 bg-gray-700 transition-transform duration-300 ${isMobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`} />
+          <span className={`w-6 h-0.5 bg-gray-700 transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-0' : ''}`} />
+          <span className={`w-6 h-0.5 bg-gray-700 transition-transform duration-300 ${isMobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`} />
+        </button>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex gap-6 text-sm font-medium text-gray-700">
           {/* Produkte Dropdown */}
           <div className="relative group">
             <Link
@@ -59,6 +74,38 @@ export function Header() {
           <Link href="/ueber-uns" className="hover:text-emerald-600 px-2 py-1">Über uns</Link>
           <Link href="/kontakt" className="hover:text-emerald-600 px-2 py-1">Kontakt</Link>
         </nav>
+
+        {/* Mobile Navigation */}
+        <div className={`md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-lg transition-all duration-300 ${
+          isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+        }`}>
+          <nav className="container py-4 space-y-4">
+            {/* Produkte Mobile */}
+            <div>
+              <Link
+                href="/produkte"
+                className="block text-gray-700 font-medium py-2 hover:text-emerald-600"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Produkte
+              </Link>
+              <div className="ml-4 mt-2 space-y-2 text-sm">
+                <Link href="/produkte/fenster" className="block py-1 text-gray-600 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>Fenster</Link>
+                <Link href="/produkte/tueren" className="block py-1 text-gray-600 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>Türen</Link>
+                <Link href="/produkte/daemmung" className="block py-1 text-gray-600 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>Dämmung</Link>
+                <Link href="/produkte/pv" className="block py-1 text-gray-600 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>PV‑Anlagen</Link>
+                <Link href="/produkte/batterie" className="block py-1 text-gray-600 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>Batteriespeicher</Link>
+                <Link href="/produkte/waermepumpen" className="block py-1 text-gray-600 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>Wärmepumpen</Link>
+                <Link href="/produkte/rollaeden" className="block py-1 text-gray-600 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>Rollläden & Blinos‑Rollos</Link>
+              </div>
+            </div>
+            
+            <Link href="/pv-rechner" className="block text-gray-700 font-medium py-2 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>PV-Rechner</Link>
+            <Link href="/faq-foerderungen" className="block text-gray-700 font-medium py-2 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>Förder-Check</Link>
+            <Link href="/ueber-uns" className="block text-gray-700 font-medium py-2 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>Über uns</Link>
+            <Link href="/kontakt" className="block text-gray-700 font-medium py-2 hover:text-emerald-600" onClick={() => setIsMobileMenuOpen(false)}>Kontakt</Link>
+          </nav>
+        </div>
       </div>
     </header>
   );

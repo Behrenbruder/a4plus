@@ -839,21 +839,27 @@ export default function Page() {
 
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-20" ref={containerRef}>
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
-        <div className="max-w-6xl mx-auto py-3 flex items-center justify-between gap-3">
-          <div className="text-sm font-medium">PV-Rechner</div>
-
-
+    <div className="container max-w-6xl mx-auto pb-20" ref={containerRef}>
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-100">
+        <div className="container max-w-6xl mx-auto py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg sm:text-xl font-semibold">PV-Rechner</h1>
+              <div className="hidden sm:block text-sm text-gray-600">
+                {pct}% abgeschlossen
+              </div>
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600 sm:hidden">
+              {pct}%
+            </div>
+          </div>
         </div>
         <div className="h-1 bg-gray-200">
-          <div className="h-1 bg-emerald-600" style={{ width: `${pct}%` }} />
+          <div className="h-1 bg-emerald-600 transition-all duration-300" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
-
-
-      <div className="space-y-10 mt-6">
+      <div className="space-y-8 sm:space-y-12 mt-6 sm:mt-8">
         <Section number={1} title="Dachart" idAnchor="s1-dachart" done={!!roofType}>
           <StepRoof
             value={roofType}

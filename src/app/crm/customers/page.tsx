@@ -26,6 +26,8 @@ export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
   const [productFilter, setProductFilter] = useState<ProductInterest | 'all'>('all');
+  const [messageFilter, setMessageFilter] = useState<'all' | 'unread' | 'no_messages'>('all');
+  const [emailCounts, setEmailCounts] = useState<Record<string, { total: number, unread: number }>>({});
 
   useEffect(() => {
     fetchCustomers();
@@ -33,7 +35,52 @@ export default function CustomersPage() {
 
   useEffect(() => {
     filterCustomers();
-  }, [customers, searchTerm, statusFilter, productFilter]);
+  }, [customers, searchTerm, statusFilter, productFilter, messageFilter, emailCounts]);
+
+  // Fetch email counts for message filtering
+  useEffect(() => {
+    const fetchEmailCounts = async () => {
+      if (customers.length === 0) return;
+      
+      try {
+        const emailCountPromises = customers.map(async (customer) => {
+          try {
+            const response = await fetch(`/api/crm/customers/${customer.id}/emails`);
+            if (response.ok) {
+              const data = await response.json();
+              const emails = data.emails || [];
+              const unreadEmails = emails.filter((email: any) => 
+                email.direction === 'incoming' && !email.is_read
+              );
+              return {
+                customerId: customer.id,
+                total: emails.length,
+                unread: unreadEmails.length
+              };
+            }
+            return { customerId: customer.id, total: 0, unread: 0 };
+          } catch (error) {
+            return { customerId: customer.id, total: 0, unread: 0 };
+          }
+        });
+
+        const results = await Promise.all(emailCountPromises);
+        const emailCountsMap = results.reduce((acc, result) => {
+          acc[result.customerId] = { 
+            total: result.total, 
+            unread: result.unread
+          };
+          return acc;
+        }, {} as Record<string, { total: number, unread: number }>);
+        
+        setEmailCounts(emailCountsMap);
+      } catch (error) {
+        console.error('Error fetching email counts:', error);
+      }
+    };
+
+    fetchEmailCounts();
+  }, [customers]);
 
   const fetchCustomers = async () => {
     try {
@@ -156,6 +203,19 @@ export default function CustomersPage() {
       filtered = filtered.filter(customer =>
         customer.product_interests?.includes(productFilter)
       );
+    }
+
+    // Message filter
+    if (messageFilter !== 'all') {
+      filtered = filtered.filter(customer => {
+        const emailData = emailCounts[customer.id];
+        if (messageFilter === 'unread') {
+          return emailData && emailData.unread > 0;
+        } else if (messageFilter === 'no_messages') {
+          return !emailData || emailData.total === 0;
+        }
+        return true;
+      });
     }
 
     setFilteredCustomers(filtered);
@@ -381,7 +441,7 @@ export default function CustomersPage() {
 
         {/* Filters */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Search */}
             <div className="relative">
               <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -420,12 +480,24 @@ export default function CustomersPage() {
               ))}
             </select>
 
+            {/* Message Filter */}
+            <select
+              value={messageFilter}
+              onChange={(e) => setMessageFilter(e.target.value as 'all' | 'unread' | 'no_messages')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
+            >
+              <option value="all">Alle Nachrichten</option>
+              <option value="unread">Ungelesene Nachrichten</option>
+              <option value="no_messages">Keine Nachrichten</option>
+            </select>
+
             {/* Clear Filters */}
             <button
               onClick={() => {
                 setSearchTerm('');
                 setStatusFilter('all');
                 setProductFilter('all');
+                setMessageFilter('all');
               }}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
             >
@@ -488,6 +560,8 @@ export default function CustomersPage() {
             </div>
           ) : (
             <CustomerList
+              customers={filteredCustomers}
+              loading={loading}
               onCustomerSelect={handleCustomerSelect}
               onCustomerEdit={handleEditCustomer}
               onCustomerDelete={handleCustomerDelete}

@@ -22,6 +22,11 @@ interface EmailOptions {
   subject: string;
   text: string;
   html: string;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+  }>;
 }
 
 // E-Mail senden
@@ -47,7 +52,8 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
       to: options.to,
       subject: options.subject,
       text: options.text,
-      html: options.html
+      html: options.html,
+      attachments: options.attachments
     });
 
     console.log('📧 E-Mail erfolgreich gesendet:', info.messageId);

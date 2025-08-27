@@ -121,69 +121,117 @@ async function send(formData: FormData) {
 export default function KontaktPage() {
   return (
     <div className="section">
-      <div className="container grid md:grid-cols-2 gap-10">
-        <div>
-          <h1 className="h1">Kontakt & Angebot</h1>
-          <p className="muted mt-2">Beschreiben Sie kurz Ihr Projekt – wir melden uns zeitnah.</p>
-          <form action={send} className="mt-6 space-y-4">
-            <input name="name" required placeholder="Ihr Name" className="w-full border rounded-xl px-4 py-3" />
-            <input type="email" name="email" required placeholder="Ihre E-Mail" className="w-full border rounded-xl px-4 py-3" />
-            
-            {/* Produktkategorien-Auswahl */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">
-                Welche Produkte interessieren Sie? (Mehrfachauswahl möglich)
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" name="product_pv" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span className="text-sm">☀️ PV-Anlagen</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" name="product_speicher" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span className="text-sm">🔋 Speicher</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" name="product_waermepumpe" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span className="text-sm">🌡️ Wärmepumpen</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" name="product_fenster" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span className="text-sm">🪟 Fenster</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" name="product_tueren" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span className="text-sm">🚪 Türen</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" name="product_daemmung" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span className="text-sm">🏠 Dämmung</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" name="product_rollaeden" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span className="text-sm">🎚️ Rolläden</span>
-                </label>
-              </div>
+      <div className="container">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="h1">Kontakt & Angebot</h1>
+            <p className="muted mt-2 text-responsive">Beschreiben Sie kurz Ihr Projekt – wir melden uns zeitnah.</p>
+          </div>
+          
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+            {/* Kontaktformular */}
+            <div className="order-2 lg:order-1">
+              <form action={send} className="space-y-4 sm:space-y-6">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <input 
+                    name="name" 
+                    required 
+                    placeholder="Ihr Name" 
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" 
+                  />
+                  <input 
+                    type="email" 
+                    name="email" 
+                    required 
+                    placeholder="Ihre E-Mail" 
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors" 
+                  />
+                </div>
+                
+                {/* Produktkategorien-Auswahl */}
+                <div className="space-y-3 sm:space-y-4">
+                  <label className="block text-sm sm:text-base font-medium text-gray-700">
+                    Welche Produkte interessieren Sie? (Mehrfachauswahl möglich)
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="flex items-center space-x-3 cursor-pointer touch-spacing bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <input type="checkbox" name="product_pv" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+                      <span className="text-sm sm:text-base">☀️ PV-Anlagen</span>
+                    </label>
+                    <label className="flex items-center space-x-3 cursor-pointer touch-spacing bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <input type="checkbox" name="product_speicher" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+                      <span className="text-sm sm:text-base">🔋 Speicher</span>
+                    </label>
+                    <label className="flex items-center space-x-3 cursor-pointer touch-spacing bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <input type="checkbox" name="product_waermepumpe" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+                      <span className="text-sm sm:text-base">🌡️ Wärmepumpen</span>
+                    </label>
+                    <label className="flex items-center space-x-3 cursor-pointer touch-spacing bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <input type="checkbox" name="product_fenster" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+                      <span className="text-sm sm:text-base">🪟 Fenster</span>
+                    </label>
+                    <label className="flex items-center space-x-3 cursor-pointer touch-spacing bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <input type="checkbox" name="product_tueren" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+                      <span className="text-sm sm:text-base">🚪 Türen</span>
+                    </label>
+                    <label className="flex items-center space-x-3 cursor-pointer touch-spacing bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <input type="checkbox" name="product_daemmung" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+                      <span className="text-sm sm:text-base">🏠 Dämmung</span>
+                    </label>
+                    <label className="flex items-center space-x-3 cursor-pointer touch-spacing bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors sm:col-span-2">
+                      <input type="checkbox" name="product_rollaeden" className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+                      <span className="text-sm sm:text-base">🎚️ Rollläden & Blinos-Rollos</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <textarea 
+                  name="message" 
+                  required 
+                  placeholder="Ihr Anliegen" 
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base min-h-[120px] sm:min-h-[140px] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors resize-vertical"
+                ></textarea>
+                
+                <button className="btn-primary w-full sm:w-auto" type="submit">
+                  Absenden
+                </button>
+              </form>
             </div>
             
-            <textarea name="message" required placeholder="Ihr Anliegen" className="w-full border rounded-xl px-4 py-3 min-h-[140px]"></textarea>
-            <button className="btn-primary" type="submit">Absenden</button>
-          </form>
-        </div>
-        <div className="space-y-6">
-          <div className="card p-6">
-            <div className="font-semibold">Direkter Kontakt</div>
-            <p className="mt-2 text-sm">
-              E-Mail: info@a4plus.eu<br/>
-              Telefon: +49 6233 3798860<br/>
-              <span className="text-gray-600">Carl-Zeiss-Straße 5<br/>67227 Frankenthal</span>
-            </p>
-          </div>
-          <div className="card p-0 overflow-hidden">
-            <LocationMap 
-              address="Carl-Zeiss-Straße 5, 67227 Frankenthal" 
-              className="h-80"
-            />
+            {/* Kontaktinformationen */}
+            <div className="order-1 lg:order-2 space-y-6">
+              <div className="card touch-spacing">
+                <h3 className="h3 mb-4">Direkter Kontakt</h3>
+                <div className="space-y-3 text-sm sm:text-base">
+                  <div className="flex items-center gap-3">
+                    <span className="text-emerald-600">📧</span>
+                    <a href="mailto:info@a4plus.eu" className="hover:text-emerald-600 transition-colors">
+                      info@a4plus.eu
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-emerald-600">📞</span>
+                    <a href="tel:+4962333798860" className="hover:text-emerald-600 transition-colors">
+                      +49 6233 3798860
+                    </a>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-emerald-600 mt-0.5">📍</span>
+                    <div className="text-gray-600">
+                      Carl-Zeiss-Straße 5<br/>
+                      67227 Frankenthal
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="card p-0 overflow-hidden">
+                <LocationMap 
+                  address="Carl-Zeiss-Straße 5, 67227 Frankenthal" 
+                  className="h-64 sm:h-80"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

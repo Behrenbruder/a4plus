@@ -7,18 +7,14 @@ export default function BatteriespeicherPage() {
       {/* HERO – Video-Hintergrund
          Motiv-Idee: Modernes Hauswirtschaftszimmer/Technikraum mit sauber montiertem Batteriespeicher,
          weiches Licht, leichte Kamerafahrt (Loop). */}
-      <section className="relative min-h-[50vh] md:min-h-[60vh] flex items-center">
+      <section className="relative min-h-[30vh] md:min-h-[45vh] flex items-center">
         {/* Hintergrundvideo */}
-        <video
+        <img
           className="absolute inset-0 w-full h-full object-cover"
-          src="/videos/hero-speicher.mp4"  // <-- Video hier ablegen
-          autoPlay
-          loop
-          muted
-          playsInline
+          src="/images/batterie/himmel.jpg"  // <-- Video hier ablegen
         />
         {/* Abdunklung für Lesbarkeit */}
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/20" />
 
         {/* Inhalt */}
         <div className="container relative z-10 text-white">
@@ -47,10 +43,13 @@ export default function BatteriespeicherPage() {
              Motiv-Idee: Detailaufnahme eines Speicherschranks / Batterieschrankes,
              cleanes, modernes Design, evtl. Status‑LEDs. */}
           <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-            <img
-              src="/images/speicher/intro-cabinet.jpg"  // <-- Bild ablegen
-              alt="Moderner Batteriespeicher im Technikraum"
+            <video
+              src="/images/batterie/charging.mp4"  // <-- Bild ablegen
               className="w-full h-[320px] object-cover"
+              autoPlay
+              loop 
+              muted
+              playsInline
             />
           </div>
 
@@ -135,14 +134,14 @@ export default function BatteriespeicherPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
               <img
-                src="/images/speicher/pv-close.jpg"  // <-- Bild ablegen
+                src="/images/pvprodukte/wallbox.jpg"  // <-- Bild ablegen
                 alt="PV‑Module – Detailaufnahme"
                 className="w-full h-[300px] object-cover"
               />
             </div>
             <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
               <img
-                src="/images/speicher/wallbox-car.jpg"  // <-- Bild ablegen
+                src="/images/pvprodukte/speicher2.jpg"  // <-- Bild ablegen
                 alt="Wallbox mit E‑Auto"
                 className="w-full h-[300px] object-cover"
               />

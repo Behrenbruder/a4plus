@@ -8,9 +8,11 @@ import {
   PhoneIcon,
   EnvelopeIcon,
   EyeIcon,
-  PencilIcon
+  PencilIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import { Customer, LeadStatus, ProductInterest } from '../../lib/crm-types';
+import SimpleCustomerForm from './SimpleCustomerForm';
 
 interface LeadPipelineProps {
   onLeadClick?: (lead: Customer) => void;
@@ -50,6 +52,8 @@ export default function LeadPipeline({ onLeadClick, onStatusChange }: LeadPipeli
   });
   const [loading, setLoading] = useState(true);
   const [draggedLead, setDraggedLead] = useState<Customer | null>(null);
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
 
   useEffect(() => {
     fetchPipelineData();
@@ -63,122 +67,76 @@ export default function LeadPipeline({ onLeadClick, onStatusChange }: LeadPipeli
       if (result.data) {
         setPipelineData(result.data);
         setStats(result.stats);
+      } else {
+        console.error('No data received from API');
+        // Initialize empty pipeline data instead of mock data
+        setPipelineData({
+          neu: [],
+          qualifiziert: [],
+          angebot_erstellt: [],
+          in_verhandlung: [],
+          gewonnen: [],
+          verloren: []
+        });
+        setStats({
+          total: 0,
+          totalValue: 0,
+          averageValue: 0,
+          conversionRate: 0
+        });
       }
     } catch (error) {
       console.error('Error fetching pipeline data:', error);
-      // Fallback to mock data
-      loadMockData();
+      // Initialize empty pipeline data instead of mock data
+      setPipelineData({
+        neu: [],
+        qualifiziert: [],
+        angebot_erstellt: [],
+        in_verhandlung: [],
+        gewonnen: [],
+        verloren: []
+      });
+      setStats({
+        total: 0,
+        totalValue: 0,
+        averageValue: 0,
+        conversionRate: 0
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const loadMockData = () => {
-    const mockData: PipelineData = {
-      neu: [
-        {
-          id: '1',
-          first_name: 'Max',
-          last_name: 'Mustermann',
-          email: 'max@example.com',
-          phone: '+49 123 456789',
-          city: 'Berlin',
-          lead_status: 'neu',
-          estimated_value: 25000,
-          probability: 25,
-          product_interests: ['pv', 'speicher'],
-          priority: 3,
-          next_follow_up_date: '2025-01-30',
-          created_at: '2025-01-25T10:00:00Z',
-          updated_at: '2025-01-25T10:00:00Z',
-          country: 'Deutschland',
-          tags: [],
-          gdpr_consent: true,
-          marketing_consent: true
-        }
-      ],
-      qualifiziert: [
-        {
-          id: '2',
-          first_name: 'Anna',
-          last_name: 'Schmidt',
-          email: 'anna@example.com',
-          phone: '+49 987 654321',
-          city: 'München',
-          lead_status: 'qualifiziert',
-          estimated_value: 18000,
-          probability: 50,
-          product_interests: ['waermepumpe'],
-          priority: 2,
-          next_follow_up_date: '2025-01-28',
-          created_at: '2025-01-20T10:00:00Z',
-          updated_at: '2025-01-25T10:00:00Z',
-          country: 'Deutschland',
-          tags: [],
-          gdpr_consent: true,
-          marketing_consent: true
-        }
-      ],
-      angebot_erstellt: [
-        {
-          id: '3',
-          first_name: 'Peter',
-          last_name: 'Weber',
-          email: 'peter@example.com',
-          phone: '+49 555 123456',
-          city: 'Hamburg',
-          lead_status: 'angebot_erstellt',
-          estimated_value: 32000,
-          probability: 75,
-          product_interests: ['pv', 'speicher', 'waermepumpe'],
-          priority: 1,
-          next_follow_up_date: '2025-01-26',
-          created_at: '2025-01-15T10:00:00Z',
-          updated_at: '2025-01-25T10:00:00Z',
-          country: 'Deutschland',
-          tags: [],
-          gdpr_consent: true,
-          marketing_consent: true
-        }
-      ],
-      in_verhandlung: [
-        {
-          id: '4',
-          first_name: 'Lisa',
-          last_name: 'Müller',
-          email: 'lisa@example.com',
-          phone: '+49 777 987654',
-          city: 'Köln',
-          lead_status: 'in_verhandlung',
-          estimated_value: 28000,
-          probability: 85,
-          product_interests: ['fenster', 'tueren'],
-          priority: 1,
-          next_follow_up_date: '2025-01-27',
-          created_at: '2025-01-10T10:00:00Z',
-          updated_at: '2025-01-25T10:00:00Z',
-          country: 'Deutschland',
-          tags: [],
-          gdpr_consent: true,
-          marketing_consent: true
-        }
-      ],
-      gewonnen: [],
-      verloren: []
-    };
+  const handleCreateCustomer = async (customerData: any) => {
+    setFormLoading(true);
+    try {
+      const response = await fetch('/api/crm/customers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(customerData),
+      });
 
-    setPipelineData(mockData);
-    
-    const total = Object.values(mockData).flat().length;
-    const totalValue = Object.values(mockData).flat().reduce((sum, lead) => sum + (lead.estimated_value || 0), 0);
-    
-    setStats({
-      total,
-      totalValue,
-      averageValue: total > 0 ? totalValue / total : 0,
-      conversionRate: 0
-    });
+      if (!response.ok) {
+        throw new Error('Failed to create customer');
+      }
+
+      const result = await response.json();
+      console.log('Customer created successfully:', result);
+      
+      // Refresh pipeline data to show the new customer
+      await fetchPipelineData();
+      
+      setShowCustomerForm(false);
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      throw error; // Re-throw to let the form handle the error
+    } finally {
+      setFormLoading(false);
+    }
   };
+
 
   const handleDragStart = (e: React.DragEvent, lead: Customer) => {
     setDraggedLead(lead);
@@ -306,12 +264,21 @@ export default function LeadPipeline({ onLeadClick, onStatusChange }: LeadPipeli
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gray-900">Lead Pipeline</h1>
-          <button
-            onClick={fetchPipelineData}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Aktualisieren
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowCustomerForm(true)}
+              className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 flex items-center"
+            >
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Neuer Kunde
+            </button>
+            <button
+              onClick={fetchPipelineData}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              Aktualisieren
+            </button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -362,7 +329,9 @@ export default function LeadPipeline({ onLeadClick, onStatusChange }: LeadPipeli
                     <h4 className="font-medium text-gray-900 text-sm">
                       {lead.first_name} {lead.last_name}
                     </h4>
-                    <div className={`w-2 h-2 rounded-full ${getPriorityColor(lead.priority)}`}></div>
+                    {lead.priority && (
+                      <div className={`w-2 h-2 rounded-full ${getPriorityColor(lead.priority)}`}></div>
+                    )}
                   </div>
                   
                   <div className="text-xs text-gray-600 mb-2">
@@ -376,21 +345,29 @@ export default function LeadPipeline({ onLeadClick, onStatusChange }: LeadPipeli
                         {lead.phone}
                       </div>
                     )}
-                    <div className="flex items-center">
-                      <CurrencyEuroIcon className="h-3 w-3 mr-1" />
-                      {formatCurrency(lead.estimated_value || 0)}
-                    </div>
+                    {lead.estimated_value && (
+                      <div className="flex items-center">
+                        <CurrencyEuroIcon className="h-3 w-3 mr-1" />
+                        {formatCurrency(lead.estimated_value)}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex space-x-1">
-                      {lead.product_interests.slice(0, 3).map((product) => (
-                        <span key={product} className="text-xs">
-                          {getProductIcon(product)}
-                        </span>
-                      ))}
-                      {lead.product_interests.length > 3 && (
-                        <span className="text-xs text-gray-500">+{lead.product_interests.length - 3}</span>
+                      {lead.product_interests && lead.product_interests.length > 0 ? (
+                        <>
+                          {lead.product_interests.slice(0, 3).map((product) => (
+                            <span key={product} className="text-xs">
+                              {getProductIcon(product)}
+                            </span>
+                          ))}
+                          {lead.product_interests.length > 3 && (
+                            <span className="text-xs text-gray-500">+{lead.product_interests.length - 3}</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-500">Keine Produktinteressen</span>
                       )}
                     </div>
                     
@@ -419,6 +396,14 @@ export default function LeadPipeline({ onLeadClick, onStatusChange }: LeadPipeli
           </div>
         ))}
       </div>
+
+      {/* Customer Form Modal */}
+      <SimpleCustomerForm
+        isOpen={showCustomerForm}
+        onClose={() => setShowCustomerForm(false)}
+        onSave={handleCreateCustomer}
+        loading={formLoading}
+      />
     </div>
   );
 }

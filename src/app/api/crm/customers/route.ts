@@ -27,16 +27,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      query = query.eq('lead_status', status);
+      query = query.eq('status', status);
     }
 
-    if (productInterest) {
-      query = query.contains('product_interests', [productInterest]);
-    }
+    // Skip product interest and assigned_to filters since these fields don't exist in basic schema
+    // if (productInterest) {
+    //   query = query.contains('product_interests', [productInterest]);
+    // }
 
-    if (assignedTo) {
-      query = query.eq('assigned_to', assignedTo);
-    }
+    // if (assignedTo) {
+    //   query = query.eq('assigned_to', assignedTo);
+    // }
 
     // Apply pagination
     const from = (page - 1) * limit;
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create customer
+    // Create customer - only use basic schema fields that exist in database
     const { data, error } = await supabase
       .from('customers')
       .insert([{
@@ -108,20 +109,8 @@ export async function POST(request: NextRequest) {
         address: body.address || null,
         city: body.city || null,
         postal_code: body.postal_code || null,
-        country: body.country || 'Deutschland',
         notes: body.notes || null,
-        lead_status: body.lead_status || 'neu',
-        lead_source: body.lead_source || null,
-        assigned_to: body.assigned_to || null,
-        estimated_value: body.estimated_value || null,
-        probability: body.probability || 50,
-        expected_close_date: body.expected_close_date || null,
-        next_follow_up_date: body.next_follow_up_date || null,
-        product_interests: body.product_interests || [],
-        priority: body.priority || 3,
-        tags: body.tags || [],
-        gdpr_consent: body.gdpr_consent || false,
-        marketing_consent: body.marketing_consent || false
+        status: body.status || 'lead'
       }])
       .select()
       .single();
@@ -131,17 +120,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Create initial contact history entry
-    await supabase
-      .from('contact_history')
-      .insert([{
-        customer_id: data.id,
-        contact_type: 'website_formular',
-        subject: 'Kunde erstellt',
-        content: 'Neuer Kunde wurde im CRM-System angelegt',
-        direction: 'inbound',
-        metadata: {}
-      }]);
+    // Skip contact history creation since the table doesn't exist in basic schema
+    // await supabase
+    //   .from('contact_history')
+    //   .insert([{
+    //     customer_id: data.id,
+    //     contact_type: 'website_formular',
+    //     subject: 'Kunde erstellt',
+    //     content: 'Neuer Kunde wurde im CRM-System angelegt',
+    //     direction: 'inbound',
+    //     metadata: {}
+    //   }]);
 
     return NextResponse.json({ data }, { status: 201 });
 

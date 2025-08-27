@@ -186,7 +186,24 @@ export default function Sidebar({ userRole, userName, userEmail, onLogout, isCol
     if (href === '/crm') {
       return pathname === '/crm'
     }
-    return pathname.startsWith(href)
+    
+    // For exact matches, prioritize them
+    if (pathname === href) {
+      return true
+    }
+    
+    // For parent items with children, only mark as active if no child is active
+    const hasChildren = navigation.find(item => item.href === href)?.children
+    if (hasChildren) {
+      const childrenHrefs = hasChildren.map(child => child.href)
+      const isChildActive = childrenHrefs.some(childHref => pathname === childHref)
+      if (isChildActive) {
+        return false // Don't mark parent as active if child is active
+      }
+    }
+    
+    // For items without exact match, use startsWith but be more specific
+    return pathname.startsWith(href) && pathname !== href
   }
 
   const renderNavigationItem = (item: NavigationItem, level = 0) => {

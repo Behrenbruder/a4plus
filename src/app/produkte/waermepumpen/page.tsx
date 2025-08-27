@@ -66,11 +66,34 @@ export default function WaermepumpenPage() {
         </p>
       </header>
 
+      {/* Luft-Wasser */}
+        <ProductRow
+          title="Luft‑Wasser‑Wärmepumpe"
+          img="/images/waermepumpe/pumpe2.jpg"
+        >
+          <p>
+            Ersetzt Öl‑ oder Gasheizungen: Die Wärmepumpe erwärmt{" "}
+            <strong>Heizungs‑ und optional Brauchwasser</strong>. Die Wärmeverteilung
+            erfolgt über Ihr bestehendes Heizsystem (Heizkörper/Fußbodenheizung).
+          </p>
+          <ul className="mt-3 list-disc pl-5 space-y-1">
+            <li>Kompletter Kesseltausch möglich (fossil → elektrisch)</li>
+            <li>Nutzung der vorhandenen Wärmeverteilung</li>
+            <li>Optional mit integriertem/externem Speicher für Brauchwasser</li>
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Chip>Kesseltausch</Chip>
+            <Chip>Brauchwasser optional</Chip>
+            <Chip>Förderfähig*</Chip>
+          </div>
+        </ProductRow>
+
       <div className="space-y-16">
         {/* Luft-Luft */}
         <ProductRow
           title="Luft‑Luft‑Wärmepumpe (Multi‑Split / VRF)"
-          img="/images/waermepumpen/luft-luft.jpg"
+          img="/images/waermepumpe/pumpe.jpg"
+          reverse
         >
           <p>
             Mehrere Innengeräte versorgen die Räume, ein Außengerät sitzt an der
@@ -91,33 +114,10 @@ export default function WaermepumpenPage() {
           </div>
         </ProductRow>
 
-        {/* Luft-Wasser */}
-        <ProductRow
-          title="Luft‑Wasser‑Wärmepumpe"
-          img="/images/waermepumpen/luft-wasser.jpg"
-          reverse
-        >
-          <p>
-            Ersetzt Öl‑ oder Gasheizungen: Die Wärmepumpe erwärmt{" "}
-            <strong>Heizungs‑ und optional Brauchwasser</strong>. Die Wärmeverteilung
-            erfolgt über Ihr bestehendes Heizsystem (Heizkörper/Fußbodenheizung).
-          </p>
-          <ul className="mt-3 list-disc pl-5 space-y-1">
-            <li>Kompletter Kesseltausch möglich (fossil → elektrisch)</li>
-            <li>Nutzung der vorhandenen Wärmeverteilung</li>
-            <li>Optional mit integriertem/externem Speicher für Brauchwasser</li>
-          </ul>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Chip>Kesseltausch</Chip>
-            <Chip>Brauchwasser optional</Chip>
-            <Chip>Förderfähig*</Chip>
-          </div>
-        </ProductRow>
-
         {/* Brauchwasser-WP */}
         <ProductRow
           title="Brauchwasser‑Wärmepumpe"
-          img="/images/waermepumpen/bwwp.jpg"
+          img="/images/waermepumpe/brauchwasser.jpg"
         >
           <p>
             Ideal als <strong>Ergänzung</strong> zur Luft‑Luft‑Wärmepumpe, um

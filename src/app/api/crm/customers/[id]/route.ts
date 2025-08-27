@@ -12,42 +12,10 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
+    // Only select fields that exist in the basic schema
     const { data, error } = await supabase
       .from('customers')
-      .select(`
-        *,
-        assigned_user:users!customers_assigned_to_fkey(first_name, last_name, email),
-        contact_history(
-          id,
-          created_at,
-          contact_type,
-          subject,
-          content,
-          direction,
-          duration_minutes,
-          user:users(first_name, last_name)
-        ),
-        projects(
-          id,
-          title,
-          description,
-          status,
-          product_type,
-          start_date,
-          planned_end_date,
-          estimated_cost,
-          actual_cost
-        ),
-        documents(
-          id,
-          title,
-          document_type,
-          file_name,
-          file_size,
-          created_at,
-          uploaded_by_user:users!documents_uploaded_by_fkey(first_name, last_name)
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -111,7 +79,7 @@ export async function PUT(
       );
     }
 
-    // Update customer
+    // Update customer - only use basic schema fields that exist in database
     const { data, error } = await supabase
       .from('customers')
       .update({
@@ -122,20 +90,8 @@ export async function PUT(
         address: body.address || null,
         city: body.city || null,
         postal_code: body.postal_code || null,
-        country: body.country || 'Deutschland',
         notes: body.notes || null,
-        lead_status: body.lead_status,
-        lead_source: body.lead_source || null,
-        assigned_to: body.assigned_to || null,
-        estimated_value: body.estimated_value || null,
-        probability: body.probability || 50,
-        expected_close_date: body.expected_close_date || null,
-        next_follow_up_date: body.next_follow_up_date || null,
-        product_interests: body.product_interests || [],
-        priority: body.priority || 3,
-        tags: body.tags || [],
-        gdpr_consent: body.gdpr_consent || false,
-        marketing_consent: body.marketing_consent || false,
+        status: body.status || 'lead',
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -150,17 +106,17 @@ export async function PUT(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Create contact history entry for update
-    await supabase
-      .from('contact_history')
-      .insert([{
-        customer_id: id,
-        contact_type: 'website_formular',
-        subject: 'Kundendaten aktualisiert',
-        content: 'Kundendaten wurden im CRM-System aktualisiert',
-        direction: 'inbound',
-        metadata: {}
-      }]);
+    // Skip contact history creation since the table doesn't exist in basic schema
+    // await supabase
+    //   .from('contact_history')
+    //   .insert([{
+    //     customer_id: id,
+    //     contact_type: 'website_formular',
+    //     subject: 'Kundendaten aktualisiert',
+    //     content: 'Kundendaten wurden im CRM-System aktualisiert',
+    //     direction: 'inbound',
+    //     metadata: {}
+    //   }]);
 
     return NextResponse.json({ data });
 
