@@ -17,7 +17,7 @@ const eslintConfig = [
       "prisma/migrations/**/*",
     ],
     rules: {
-      // Convert critical errors to warnings to allow build to pass
+      // Convert all TypeScript errors to warnings to prevent build failures
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/ban-ts-comment": "warn",
@@ -32,6 +32,27 @@ const eslintConfig = [
       "@typescript-eslint/no-unnecessary-type-constraint": "warn",
       "@typescript-eslint/no-wrapper-object-types": "warn",
       "@typescript-eslint/no-unsafe-function-type": "warn"
+    }
+  },
+  // Additional configuration to completely ignore generated files
+  {
+    files: ["src/generated/**/*"],
+    rules: {
+      // Disable all rules for generated files
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
+      "prefer-const": "off",
+      "react-hooks/exhaustive-deps": "off",
+      "@next/next/no-img-element": "off",
+      "jsx-a11y/alt-text": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-this-alias": "off",
+      "@typescript-eslint/no-empty-object-type": "off",
+      "@typescript-eslint/no-unnecessary-type-constraint": "off",
+      "@typescript-eslint/no-wrapper-object-types": "off",
+      "@typescript-eslint/no-unsafe-function-type": "off"
     }
   },
 ];

@@ -328,7 +328,12 @@ async function syncAccountEmailsForCustomer(
   newEmails: number;
   errors: string[];
 }> {
-  const result = {
+  const result: {
+    success: boolean;
+    emailsProcessed: number;
+    newEmails: number;
+    errors: string[];
+  } = {
     success: false,
     emailsProcessed: 0,
     newEmails: 0,
@@ -545,7 +550,12 @@ async function syncAccountEmails(account: IMAPAccount, supabase: any, sinceHours
   newEmails: number;
   errors: string[];
 }> {
-  const result = {
+  const result: {
+    success: boolean;
+    emailsProcessed: number;
+    newEmails: number;
+    errors: string[];
+  } = {
     success: false,
     emailsProcessed: 0,
     newEmails: 0,
@@ -789,7 +799,7 @@ export async function syncEmailsFromMultipleIMAP(sinceHours: number = 24): Promi
     
   } catch (error) {
     console.error('❌ Fehler bei der Multi-Account E-Mail-Synchronisation:', error);
-    result.errors.push(`Allgemeiner Fehler: ${error}`);
+    result.errors.push(`Allgemeiner Fehler: ${String(error)}`);
   }
   
   return result;
