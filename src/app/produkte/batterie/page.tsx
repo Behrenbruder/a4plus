@@ -189,37 +189,6 @@ export default function BatteriespeicherPage() {
           </div>
         </div>
       </section>
-
-      {/* Use‑Cases / Bildband */}
-      <section className="section bg-white">
-        <div className="container">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="h2">Einsatzbeispiele</h2>
-            <p className="muted mt-3 sm:mt-4 text-responsive">
-              Passend für Einfamilienhaus, Mehrfamilienhaus und Gewerbe – wir planen skalierbar.
-            </p>
-          </div>
-
-          {/* 3er Bildband */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {[
-              { src: "/images/speicher/case-efh.jpg", alt: "Batteriespeicher im Einfamilienhaus" },
-              { src: "/images/speicher/case-mfh.jpg", alt: "Speicherlösung im Mehrfamilienhaus" },
-              { src: "/images/speicher/case-commercial.jpg", alt: "Gewerblicher Speicher" },
-            ].map((img) => (
-              <div key={img.src} className="rounded-xl sm:rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-                <img src={img.src} alt={img.alt} className="w-full h-[200px] sm:h-[240px] lg:h-[280px] object-cover" />
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 sm:mt-12 text-center">
-            <Link href="/pv-rechner" className="btn-primary w-full sm:w-auto">
-              Jetzt PV‑Rechner öffnen
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
