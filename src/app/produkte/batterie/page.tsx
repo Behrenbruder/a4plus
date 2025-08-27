@@ -1,80 +1,82 @@
-// src/app/batteriespeicher/page.tsx
 import Link from "next/link";
 
 export default function BatteriespeicherPage() {
   return (
     <div className="space-y-0">
-      {/* HERO – Video-Hintergrund
-         Motiv-Idee: Modernes Hauswirtschaftszimmer/Technikraum mit sauber montiertem Batteriespeicher,
-         weiches Licht, leichte Kamerafahrt (Loop). */}
-      <section className="relative min-h-[30vh] md:min-h-[45vh] flex items-center">
-        {/* Hintergrundvideo */}
+      {/* HERO – Video-Hintergrund */}
+      <section className="relative min-h-[50vh] sm:min-h-[60vh] md:min-h-[70vh] flex items-center">
+        {/* Hintergrundbild */}
         <img
-          className="absolute inset-0 w-full h-full object-cover"
-          src="/images/batterie/himmel.jpg"  // <-- Video hier ablegen
+          className="absolute inset-0 w-full h-full object-cover object-center"
+          src="/images/batterie/himmel.jpg"
+          alt="Batteriespeicher Hintergrund"
         />
         {/* Abdunklung für Lesbarkeit */}
         <div className="absolute inset-0 bg-black/20" />
 
         {/* Inhalt */}
         <div className="container relative z-10 text-white">
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
-            Batteriespeicher – mehr Unabhängigkeit, mehr Eigenverbrauch
-          </h1>
-          <p className="mt-4 max-w-2xl text-gray-100">
-            Speichern Sie Ihren Solarstrom und nutzen Sie ihn dann, wenn Sie ihn brauchen – abends,
-            nachts oder bei Wolken. So senken Sie Ihre Stromkosten nachhaltig.
-          </p>
-          <div className="mt-6 flex gap-3">
-            <Link href="/pv-rechner" className="btn-primary bg-white text-emerald-600 hover:bg-gray-100">
-              PV‑Rechner starten
-            </Link>
-            <Link href="/faq-foerderungen" className="btn-ghost bg-white/10 hover:bg-white/20 text-white">
-              Förder‑Check
-            </Link>
+          <div className="max-w-3xl">
+            <h1 className="h1 text-white">
+              Batteriespeicher – mehr Unabhängigkeit, mehr Eigenverbrauch
+            </h1>
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-gray-100 max-w-2xl">
+              Speichern Sie Ihren Solarstrom und nutzen Sie ihn dann, wenn Sie ihn brauchen – abends,
+              nachts oder bei Wolken. So senken Sie Ihre Stromkosten nachhaltig.
+            </p>
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <Link href="/pv-rechner" className="btn-primary bg-white text-emerald-600 hover:bg-gray-100 w-full sm:w-auto">
+                PV‑Rechner starten
+              </Link>
+              <Link href="/faq-foerderungen" className="btn-ghost bg-white/10 hover:bg-white/20 text-white w-full sm:w-auto">
+                Förder‑Check
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Intro – Nutzen + Bildplatz */}
       <section className="section bg-white">
-        <div className="container grid md:grid-cols-2 gap-10 items-center">
-          {/* Bildplatz
-             Motiv-Idee: Detailaufnahme eines Speicherschranks / Batterieschrankes,
-             cleanes, modernes Design, evtl. Status‑LEDs. */}
-          <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-            <video
-              src="/images/batterie/charging.mp4"  // <-- Bild ablegen
-              className="w-full h-[320px] object-cover"
-              autoPlay
-              loop 
-              muted
-              playsInline
-            />
-          </div>
+        <div className="container">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Bildplatz */}
+            <div className="order-2 lg:order-1">
+              <div className="rounded-xl sm:rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                <video
+                  src="/images/batterie/charging.mp4"
+                  className="w-full h-[250px] sm:h-[320px] lg:h-[400px] object-cover"
+                  autoPlay
+                  loop 
+                  muted
+                  playsInline
+                />
+              </div>
+            </div>
 
-          <div>
-            <h2 className="h2">Ihr Solarstrom – jederzeit verfügbar</h2>
-            <p className="muted mt-2">
-              Ein Batteriespeicher erhöht Ihren Eigenverbrauch und macht Solarenergie planbar.
-              Wir beraten technologieoffen, planen passend zu Verbrauch und Dachanlage und übernehmen
-              auf Wunsch auch die Fördermittel‑Prüfung.
-            </p>
+            <div className="order-1 lg:order-2">
+              <h2 className="h2">Ihr Solarstrom – jederzeit verfügbar</h2>
+              <p className="muted mt-3 sm:mt-4 text-responsive">
+                Ein Batteriespeicher erhöht Ihren Eigenverbrauch und macht Solarenergie planbar.
+                Wir beraten technologieoffen, planen passend zu Verbrauch und Dachanlage und übernehmen
+                auf Wunsch auch die Fördermittel‑Prüfung.
+              </p>
 
-            <ul className="mt-6 grid gap-3">
-              {[
-                "Höherer Eigenverbrauch statt Netzeinspeisung",
-                "Unabhängiger von Strompreisschwankungen",
-                "Optimale Nutzung Ihrer PV‑Anlage",
-                "Vorbereitung für Lastmanagement & Smart‑Home",
-                "Förderungen & attraktive Finanzierung kombinierbar",
-              ].map((b) => (
-                <li key={b} className="flex items-start gap-3">
-                  <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
+              <ul className="mt-6 sm:mt-8 space-y-3 sm:space-y-4">
+                {[
+                  "Höherer Eigenverbrauch statt Netzeinspeisung",
+                  "Unabhängiger von Strompreisschwankungen",
+                  "Optimale Nutzung Ihrer PV‑Anlage",
+                  "Vorbereitung für Lastmanagement & Smart‑Home",
+                  "Förderungen & attraktive Finanzierung kombinierbar",
+                ].map((b) => (
+                  <li key={b} className="flex items-start gap-3">
+                    <span className="mt-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
+                    <span className="text-sm sm:text-base">{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -82,13 +84,15 @@ export default function BatteriespeicherPage() {
       {/* Leistungen */}
       <section className="section bg-gray-50">
         <div className="container">
-          <h2 className="h2 text-center mb-10">Unser Leistungspaket</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="h2">Unser Leistungspaket</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {LEISTUNGEN.map((c) => (
-              <div key={c.title} className="card p-6">
-                <div className="text-3xl">{c.icon}</div>
-                <h3 className="font-semibold mt-3">{c.title}</h3>
-                <p className="muted mt-2">{c.text}</p>
+              <div key={c.title} className="card touch-spacing text-center">
+                <div className="text-2xl sm:text-3xl mb-3">{c.icon}</div>
+                <h3 className="h3 mb-2">{c.title}</h3>
+                <p className="muted text-sm sm:text-base">{c.text}</p>
               </div>
             ))}
           </div>
@@ -97,54 +101,53 @@ export default function BatteriespeicherPage() {
 
       {/* Zusammenspiel – Speicher + PV + Wärmepumpe + Wallbox */}
       <section className="section bg-white">
-        <div className="container grid md:grid-cols-2 gap-10 items-center">
-          <div>
-            <h2 className="h2">Das perfekte Team: Speicher, PV & Co.</h2>
-            <p className="muted mt-2">
-              Mit Speicher heben Sie das volle Potenzial Ihrer PV‑Anlage. In Kombination mit
-              Wärmepumpe und Wallbox entsteht ein starkes System – Strom, Wärme und Mobilität
-              intelligent vernetzt.
-            </p>
-            <div className="mt-6 grid sm:grid-cols-2 gap-3">
-              {[
-                "PV + Speicher – maximaler Eigenverbrauch",
-                "Speicher + Wärmepumpe – Strom wird Wärme",
-                "Wallbox – Laden mit eigenem Solarstrom",
-                "Smart‑Home – flexible Lastverschiebung",
-              ].map((f) => (
-                <div key={f} className="rounded-xl border p-3 text-sm">
-                  {f}
-                </div>
-              ))}
+        <div className="container">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div className="order-2 lg:order-1">
+              <h2 className="h2">Das perfekte Team: Speicher, PV & Co.</h2>
+              <p className="muted mt-3 sm:mt-4 text-responsive">
+                Mit Speicher heben Sie das volle Potenzial Ihrer PV‑Anlage. In Kombination mit
+                Wärmepumpe und Wallbox entsteht ein starkes System – Strom, Wärme und Mobilität
+                intelligent vernetzt.
+              </p>
+              <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {[
+                  "PV + Speicher – maximaler Eigenverbrauch",
+                  "Speicher + Wärmepumpe – Strom wird Wärme",
+                  "Wallbox – Laden mit eigenem Solarstrom",
+                  "Smart‑Home – flexible Lastverschiebung",
+                ].map((f) => (
+                  <div key={f} className="rounded-xl border border-gray-200 p-3 sm:p-4 text-sm sm:text-base hover:border-emerald-200 hover:bg-emerald-50/50 transition-colors">
+                    {f}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <Link href="/pv-rechner" className="btn-primary w-full sm:w-auto">
+                  Größe & Wirtschaftlichkeit prüfen
+                </Link>
+                <Link href="/kontakt" className="btn-ghost w-full sm:w-auto">
+                  Kostenlose Beratung anfragen
+                </Link>
+              </div>
             </div>
-            <div className="mt-6 flex gap-3">
-              <Link href="/pv-rechner" className="btn-primary">
-                Größe & Wirtschaftlichkeit prüfen
-              </Link>
-              <Link href="/kontakt" className="btn-ghost">
-                Kostenlose Beratung anfragen
-              </Link>
-            </div>
-          </div>
 
-          {/* Bildplätze (Diptych)
-             Motive:
-             - Links: PV‑Dach (Close‑up Modulstruktur)
-             - Rechts: E‑Auto an Wallbox in Garage/Carport */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-              <img
-                src="/images/pvprodukte/wallbox.jpg"  // <-- Bild ablegen
-                alt="PV‑Module – Detailaufnahme"
-                className="w-full h-[300px] object-cover"
-              />
-            </div>
-            <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-              <img
-                src="/images/pvprodukte/speicher2.jpg"  // <-- Bild ablegen
-                alt="Wallbox mit E‑Auto"
-                className="w-full h-[300px] object-cover"
-              />
+            {/* Bildplätze (Diptych) */}
+            <div className="order-1 lg:order-2 grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="rounded-xl sm:rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                <img
+                  src="/images/pvprodukte/wallbox.jpg"
+                  alt="PV‑Module – Detailaufnahme"
+                  className="w-full h-[150px] sm:h-[200px] lg:h-[250px] object-cover"
+                />
+              </div>
+              <div className="rounded-xl sm:rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                <img
+                  src="/images/pvprodukte/speicher2.jpg"
+                  alt="Wallbox mit E‑Auto"
+                  className="w-full h-[150px] sm:h-[200px] lg:h-[250px] object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -153,20 +156,22 @@ export default function BatteriespeicherPage() {
       {/* Förderungen – kompakt, mit Links/CTA */}
       <section className="section bg-emerald-50">
         <div className="container">
-          <h2 className="h2">Förderungen & Finanzierung</h2>
-          <p className="muted mt-2 max-w-3xl">
-            Wir prüfen Zuschüsse und Kredite für Speicher und PV – von Bundes‑ bis Landesprogrammen
-            und steuerlichen Vorteilen. Unser Ziel: <b>Maximale Förderung, minimaler Eigenanteil.</b>
-          </p>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="h2">Förderungen & Finanzierung</h2>
+            <p className="muted mt-3 sm:mt-4 max-w-3xl mx-auto text-responsive">
+              Wir prüfen Zuschüsse und Kredite für Speicher und PV – von Bundes‑ bis Landesprogrammen
+              und steuerlichen Vorteilen. Unser Ziel: <b>Maximale Förderung, minimaler Eigenanteil.</b>
+            </p>
+          </div>
 
-          <div className="mt-6 grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {FOERDERN.map((f) => (
-              <div key={f.title} className="card p-6">
-                <div className="text-3xl">{f.icon}</div>
-                <h3 className="font-semibold mt-3">{f.title}</h3>
-                <p className="muted mt-2">{f.text}</p>
-                <div className="mt-4">
-                  <Link href={f.href} className="text-emerald-700 underline">
+              <div key={f.title} className="card touch-spacing">
+                <div className="text-2xl sm:text-3xl mb-3">{f.icon}</div>
+                <h3 className="h3 mb-2">{f.title}</h3>
+                <p className="muted text-sm sm:text-base mb-4">{f.text}</p>
+                <div>
+                  <Link href={f.href} className="text-emerald-700 hover:text-emerald-800 underline text-sm sm:text-base transition-colors">
                     Mehr erfahren
                   </Link>
                 </div>
@@ -174,11 +179,11 @@ export default function BatteriespeicherPage() {
             ))}
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/pv-rechner" className="btn-primary">
+          <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+            <Link href="/pv-rechner" className="btn-primary w-full sm:w-auto">
               Förder‑ & Wirtschaftlichkeits‑Check starten
             </Link>
-            <Link href="/faq-foerderungen" className="btn-ghost">
+            <Link href="/faq-foerderungen" className="btn-ghost w-full sm:w-auto">
               Zu den Förder‑FAQs
             </Link>
           </div>
@@ -188,29 +193,28 @@ export default function BatteriespeicherPage() {
       {/* Use‑Cases / Bildband */}
       <section className="section bg-white">
         <div className="container">
-          <h2 className="h2 text-center">Einsatzbeispiele</h2>
-          <p className="muted text-center mt-2">
-            Passend für Einfamilienhaus, Mehrfamilienhaus und Gewerbe – wir planen skalierbar.
-          </p>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="h2">Einsatzbeispiele</h2>
+            <p className="muted mt-3 sm:mt-4 text-responsive">
+              Passend für Einfamilienhaus, Mehrfamilienhaus und Gewerbe – wir planen skalierbar.
+            </p>
+          </div>
 
-          {/* 3er Bildband – Motive:
-              - EFH Technikraum mit Speicher
-              - MFH Keller mit mehreren Speichern/WR
-              - Gewerbe (kleiner Betrieb) mit Energiespeicherlösung */}
-          <div className="mt-8 grid md:grid-cols-3 gap-6">
+          {/* 3er Bildband */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[
               { src: "/images/speicher/case-efh.jpg", alt: "Batteriespeicher im Einfamilienhaus" },
               { src: "/images/speicher/case-mfh.jpg", alt: "Speicherlösung im Mehrfamilienhaus" },
               { src: "/images/speicher/case-commercial.jpg", alt: "Gewerblicher Speicher" },
             ].map((img) => (
-              <div key={img.src} className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-                <img src={img.src} alt={img.alt} className="w-full h-[240px] object-cover" />
+              <div key={img.src} className="rounded-xl sm:rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                <img src={img.src} alt={img.alt} className="w-full h-[200px] sm:h-[240px] lg:h-[280px] object-cover" />
               </div>
             ))}
           </div>
 
-          <div className="mt-10 text-center">
-            <Link href="/pv-rechner" className="btn-primary">
+          <div className="mt-8 sm:mt-12 text-center">
+            <Link href="/pv-rechner" className="btn-primary w-full sm:w-auto">
               Jetzt PV‑Rechner öffnen
             </Link>
           </div>
