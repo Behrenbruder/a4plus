@@ -73,10 +73,44 @@ CREATE TABLE IF NOT EXISTS foerder_reviews (
   scan_date DATE NOT NULL,
   status TEXT DEFAULT 'pending', -- 'pending', 'reviewed', 'applied'
   total_changes INTEGER DEFAULT 0,
+  total_conflicts INTEGER DEFAULT 0,
   reviewed_at TIMESTAMP WITH TIME ZONE,
   applied_at TIMESTAMP WITH TIME ZONE,
   reviewer_email TEXT,
-  notes TEXT
+  notes TEXT,
+  manual_instructions TEXT -- Textfeld für manuelle Anweisungen bei Konflikten
+);
+
+-- Tabelle für Konflikt-Erkennung zwischen Quellen
+CREATE TABLE IF NOT EXISTS foerder_conflicts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  scan_date DATE NOT NULL,
+  foerder_id TEXT NOT NULL,
+  conflict_type TEXT NOT NULL, -- 'AMOUNT_MISMATCH', 'CRITERIA_DIFFERENT', 'VALIDITY_CONFLICT', 'DUPLICATE_PROGRAM'
+  source_a TEXT NOT NULL,
+  source_b TEXT NOT NULL,
+  data_a JSONB NOT NULL,
+  data_b JSONB NOT NULL,
+  conflict_summary TEXT NOT NULL,
+  severity TEXT DEFAULT 'MEDIUM', -- 'LOW', 'MEDIUM', 'HIGH'
+  resolved BOOLEAN DEFAULT FALSE,
+  resolution_notes TEXT,
+  preferred_source TEXT -- Welche Quelle bevorzugt werden soll
+);
+
+-- Tabelle für Review-Verlauf und Dokumentation
+CREATE TABLE IF NOT EXISTS foerder_review_history (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  review_id UUID REFERENCES foerder_reviews(id),
+  action_type TEXT NOT NULL, -- 'APPROVED', 'REJECTED', 'MODIFIED', 'CONFLICT_RESOLVED'
+  foerder_id TEXT,
+  old_data JSONB,
+  new_data JSONB,
+  reviewer_email TEXT,
+  notes TEXT,
+  manual_instruction TEXT -- Spezifische Anweisung für diese Änderung
 );
 
 -- Indizes für Performance
@@ -92,7 +126,14 @@ INSERT INTO foerder_sources (name, type, url, parser_type, config) VALUES
 ('BAFA', 'BUND', 'https://www.bafa.de/DE/Energie/Effiziente_Gebaeude/effiziente_gebaeude_node.html', 'BAFA', '{"programs": ["BEG", "Heizungsfoerderung"]}'),
 ('Berlin-IBB', 'LAND', 'https://www.ibb.de/de/foerderprogramme/', 'GENERIC_HTML', '{"region": "Berlin", "selectors": {".program-item": "program"}}'),
 ('NRW-Progres', 'LAND', 'https://www.bra.nrw.de/energie-bergbau/foerderprogramme-fuer-klimaschutz-und-energiewende', 'GENERIC_HTML', '{"region": "Nordrhein-Westfalen"}'),
-('Baden-Württemberg-LBank', 'LAND', 'https://www.l-bank.de/produkte/', 'GENERIC_HTML', '{"region": "Baden-Württemberg"}')
+('Baden-Württemberg-LBank', 'LAND', 'https://www.l-bank.de/produkte/', 'GENERIC_HTML', '{"region": "Baden-Württemberg"}'),
+('Förderdatenbank', 'BUND', 'https://www.foerderdatenbank.de/', 'GENERIC_HTML', '{"selectors": {".foerderung-item": "program", ".program-title": "title"}}'),
+('Renewa', 'BUND', 'https://www.renewa.de/foerderdatenbank/', 'GENERIC_HTML', '{"selectors": {".funding-item": "program", ".title": "title"}}'),
+('Verbraucherzentrale-RLP', 'LAND', 'https://www.verbraucherzentrale-rlp.de/energie/foerderung', 'GENERIC_HTML', '{"region": "Rheinland-Pfalz", "selectors": {".content-item": "program"}}'),
+('Verbraucherzentrale-Speicher', 'BUND', 'https://www.verbraucherzentrale.de/wissen/energie/erneuerbare-energien/foerderung-fuer-batteriespeicher', 'GENERIC_HTML', '{"focus": "Speicher", "selectors": {".article-content": "program"}}'),
+('Co2online', 'BUND', 'https://www.co2online.de/foerdermittel/', 'GENERIC_HTML', '{"selectors": {".funding-program": "program", ".program-name": "title"}}'),
+('SMA', 'BUND', 'https://www.sma.de/foerderung', 'GENERIC_HTML', '{"focus": "PV", "selectors": {".funding-info": "program"}}'),
+('Solarwatt', 'BUND', 'https://www.solarwatt.de/foerderung', 'GENERIC_HTML', '{"focus": "PV+Speicher", "selectors": {".promotion-item": "program"}}')
 ON CONFLICT (name) DO NOTHING;
 
 -- Aktuelle Förderungen aus JSON in Live-Tabelle importieren

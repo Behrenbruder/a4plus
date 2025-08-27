@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 import { FoerderParserFactory, FoerderProgram, ParseResult } from '@/lib/foerder-parsers';
+import { hybridConflictDetector, HybridConflictResult } from '@/lib/hybrid-conflict-detector';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,6 +15,7 @@ interface ScanResult {
   changes: number;
   errors: string[];
   scanId: string;
+  conflicts?: number;
 }
 
 export async function POST(req: Request) {
@@ -132,21 +134,26 @@ export async function POST(req: Request) {
       }
     }
     
-    // Erstelle Review-Session wenn Änderungen gefunden wurden
-    if (results.changes > 0) {
+    // Erkenne Konflikte zwischen Quellen
+    console.log(`[${scanId}] Erkenne Konflikte zwischen Quellen...`);
+    const conflictCount = await detectConflicts(scanDate);
+    
+    // Erstelle Review-Session wenn Änderungen oder Konflikte gefunden wurden
+    if (results.changes > 0 || conflictCount > 0) {
       const { data: reviewSession, error: reviewError } = await supabase
         .from('foerder_reviews')
         .insert({
           scan_date: scanDate,
           total_changes: results.changes,
+          total_conflicts: conflictCount,
           status: 'pending'
         })
         .select()
         .single();
       
       if (!reviewError && reviewSession) {
-        // Sende E-Mail-Benachrichtigung
-        await sendReviewNotification(reviewSession.id, results);
+        // Sende E-Mail-Benachrichtigung mit Konflikt-Informationen
+        await sendReviewNotification(reviewSession.id, { ...results, conflicts: conflictCount });
       }
     }
     
@@ -287,6 +294,151 @@ async function createDiffReport(sourceName: string, newPrograms: FoerderProgram[
   }
 }
 
+async function detectConflicts(scanDate: string): Promise<number> {
+  try {
+    // Hole alle Programme vom aktuellen Scan
+    const { data: snapshots } = await supabase
+      .from('foerder_snapshots')
+      .select('source_name, processed_data')
+      .eq('scan_date', scanDate)
+      .eq('scan_status', 'completed');
+    
+    if (!snapshots || snapshots.length < 2) {
+      return 0; // Keine Konflikte möglich mit weniger als 2 Quellen
+    }
+    
+    const conflicts: any[] = [];
+    const allPrograms: Map<string, { program: FoerderProgram, source: string }[]> = new Map();
+    
+    // Sammle alle Programme gruppiert nach ähnlichen Namen/IDs
+    for (const snapshot of snapshots) {
+      const programs: FoerderProgram[] = snapshot.processed_data || [];
+      
+      for (const program of programs) {
+        const normalizedName = program.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const key = normalizedName.substring(0, 20); // Erste 20 Zeichen für Ähnlichkeitsvergleich
+        
+        if (!allPrograms.has(key)) {
+          allPrograms.set(key, []);
+        }
+        allPrograms.get(key)!.push({ program, source: snapshot.source_name });
+      }
+    }
+    
+    // Erkenne Konflikte mit Hybrid-System
+    for (const [key, programGroup] of allPrograms) {
+      if (programGroup.length > 1) {
+        // Vergleiche alle Programme in dieser Gruppe mit Hybrid-Detektor
+        for (let i = 0; i < programGroup.length; i++) {
+          for (let j = i + 1; j < programGroup.length; j++) {
+            const programA = programGroup[i];
+            const programB = programGroup[j];
+            
+            // Verwende Hybrid-Konflikt-Detektor
+            const hybridResult = await hybridConflictDetector.detectConflict(
+              programA.program,
+              programB.program,
+              programA.source,
+              programB.source
+            );
+            
+            if (hybridResult.hasConflict) {
+              conflicts.push({
+                scan_date: scanDate,
+                foerder_id: `${programA.program.id}_vs_${programB.program.id}`,
+                conflict_type: hybridResult.conflictType,
+                source_a: programA.source,
+                source_b: programB.source,
+                data_a: programA.program,
+                data_b: programB.program,
+                conflict_summary: hybridResult.summary,
+                severity: hybridResult.severity,
+                confidence: hybridResult.confidence,
+                ai_analysis: hybridResult.aiAnalysis,
+                rule_based_analysis: hybridResult.ruleBasedAnalysis,
+                recommendation: hybridResult.recommendation,
+                explanation: hybridResult.explanation
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    // Speichere Konflikte
+    if (conflicts.length > 0) {
+      const { error } = await supabase
+        .from('foerder_conflicts')
+        .insert(conflicts);
+      
+      if (error) {
+        console.error('Fehler beim Speichern der Konflikte:', error);
+        return 0;
+      }
+    }
+    
+    console.log(`${conflicts.length} Hybrid-Konflikte erkannt`);
+    return conflicts.length;
+    
+  } catch (error) {
+    console.error('Fehler bei der Hybrid-Konflikt-Erkennung:', error);
+    return 0;
+  }
+}
+
+function comparePrograms(programA: FoerderProgram, programB: FoerderProgram): {
+  hasConflict: boolean;
+  type: string;
+  summary: string;
+  severity: string;
+} {
+  const conflicts: string[] = [];
+  let severity = 'LOW';
+  
+  // Vergleiche Förderbeträge
+  if (programA.amount !== programB.amount && 
+      programA.amount !== 'Siehe Programmbedingungen' && 
+      programB.amount !== 'Siehe Programmbedingungen') {
+    conflicts.push(`Betrag: ${programA.amount} vs ${programB.amount}`);
+    severity = 'HIGH';
+  }
+  
+  // Vergleiche Gültigkeit
+  if (programA.validity !== programB.validity && 
+      programA.validity !== 'laufend' && 
+      programB.validity !== 'laufend') {
+    conflicts.push(`Gültigkeit: ${programA.validity} vs ${programB.validity}`);
+    severity = severity === 'HIGH' ? 'HIGH' : 'MEDIUM';
+  }
+  
+  // Vergleiche Zielgruppen
+  if (programA.target !== programB.target) {
+    conflicts.push(`Zielgruppe: ${programA.target} vs ${programB.target}`);
+    severity = severity === 'HIGH' ? 'HIGH' : 'MEDIUM';
+  }
+  
+  // Vergleiche Kategorien
+  const categoriesA = new Set(programA.categories);
+  const categoriesB = new Set(programB.categories);
+  const commonCategories = [...categoriesA].filter(cat => categoriesB.has(cat));
+  
+  if (commonCategories.length === 0 && programA.categories.length > 0 && programB.categories.length > 0) {
+    conflicts.push(`Keine gemeinsamen Kategorien`);
+  }
+  
+  const hasConflict = conflicts.length > 0;
+  const type = hasConflict ? (conflicts.some(c => c.includes('Betrag')) ? 'AMOUNT_MISMATCH' : 
+                             conflicts.some(c => c.includes('Gültigkeit')) ? 'VALIDITY_CONFLICT' : 
+                             'CRITERIA_DIFFERENT') : '';
+  
+  return {
+    hasConflict,
+    type,
+    summary: conflicts.join('; '),
+    severity
+  };
+}
+
 function hasSignificantChanges(old: FoerderProgram, new_: FoerderProgram): boolean {
   // Prüfe wichtige Felder auf Änderungen
   const significantFields = ['name', 'amount', 'criteria', 'validity', 'summary'];
@@ -338,9 +490,11 @@ function generateChangeSummary(old: FoerderProgram, new_: FoerderProgram): strin
 async function sendReviewNotification(reviewId: string, scanResults: ScanResult): Promise<void> {
   try {
     const reviewUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://a4plus.eu'}/admin/foerder-review/${reviewId}`;
+    const crmUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://a4plus.eu'}/crm`;
     
     // E-Mail-Inhalt erstellen
-    const emailSubject = `🔍 Förderungen-Update: ${scanResults.changes} Änderungen gefunden`;
+    const conflictText = scanResults.conflicts && scanResults.conflicts > 0 ? ` und ${scanResults.conflicts} Konflikte` : '';
+    const emailSubject = `🔍 Förderungen-Update: ${scanResults.changes} Änderungen${conflictText} gefunden`;
     
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -352,8 +506,17 @@ async function sendReviewNotification(reviewId: string, scanResults: ScanResult)
             <li><strong>${scanResults.changes}</strong> Änderungen gefunden</li>
             <li><strong>${scanResults.scannedSources}</strong> Quellen gescannt</li>
             <li><strong>${scanResults.totalPrograms}</strong> Programme insgesamt</li>
+            ${scanResults.conflicts && scanResults.conflicts > 0 ? `<li><strong>${scanResults.conflicts}</strong> Konflikte zwischen Quellen erkannt</li>` : ''}
           </ul>
         </div>
+        
+        ${scanResults.conflicts && scanResults.conflicts > 0 ? `
+          <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #d97706;">⚠️ Konflikte erkannt</h3>
+            <p>Es wurden <strong>${scanResults.conflicts}</strong> Konflikte zwischen verschiedenen Förderungsquellen gefunden. Diese erfordern eine manuelle Überprüfung und Anweisung zur Verarbeitung.</p>
+            <p><strong>Bitte geben Sie bei der Überprüfung textbasierte Anweisungen an, wie diese Konflikte aufgelöst werden sollen.</strong></p>
+          </div>
+        ` : ''}
         
         ${scanResults.errors.length > 0 ? `
           <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -366,24 +529,30 @@ async function sendReviewNotification(reviewId: string, scanResults: ScanResult)
         
         <div style="text-align: center; margin: 30px 0;">
           <a href="${reviewUrl}" 
-             style="background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            🔍 Änderungen überprüfen
+             style="background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 0 10px 10px 0;">
+            🔍 Änderungen überprüfen & Upload bestätigen
+          </a>
+          <a href="${crmUrl}" 
+             style="background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 0 0 10px 0;">
+            📋 CRM-System öffnen
           </a>
         </div>
         
         <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 14px; color: #6b7280;">
           <p><strong>Nächste Schritte:</strong></p>
           <ol>
-            <li>Klicken Sie auf den Button oben, um die Änderungen zu überprüfen</li>
+            <li>Klicken Sie auf "Änderungen überprüfen", um die gefundenen Änderungen und Konflikte zu sehen</li>
+            <li>Bei Konflikten: Geben Sie textbasierte Anweisungen zur Auflösung ein</li>
             <li>Wählen Sie die Änderungen aus, die Sie übernehmen möchten</li>
-            <li>Klicken Sie auf "Änderungen übernehmen" um sie zu aktivieren</li>
+            <li>Klicken Sie auf "Upload bestätigen" um die Änderungen zu aktivieren</li>
+            <li>Der Verlauf wird automatisch im CRM-System dokumentiert</li>
           </ol>
         </div>
         
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
         <p style="font-size: 12px; color: #9ca3af; text-align: center;">
           Diese E-Mail wurde automatisch vom Förderungen-Überwachungssystem generiert.<br>
-          Scan-ID: ${scanResults.scanId}
+          Scan-ID: ${scanResults.scanId} | Review-ID: ${reviewId}
         </p>
       </div>
     `;
@@ -394,15 +563,27 @@ Förderungen-Scan Ergebnis
 ${scanResults.changes} Änderungen gefunden
 ${scanResults.scannedSources} Quellen gescannt  
 ${scanResults.totalPrograms} Programme insgesamt
+${scanResults.conflicts && scanResults.conflicts > 0 ? `${scanResults.conflicts} Konflikte zwischen Quellen erkannt` : ''}
+
+${scanResults.conflicts && scanResults.conflicts > 0 ? `
+KONFLIKTE ERKANNT:
+Es wurden ${scanResults.conflicts} Konflikte zwischen verschiedenen Förderungsquellen gefunden.
+Diese erfordern eine manuelle Überprüfung und textbasierte Anweisungen zur Auflösung.
+` : ''}
 
 ${scanResults.errors.length > 0 ? `
 Fehler beim Scannen:
 ${scanResults.errors.join('\n')}
 ` : ''}
 
-Überprüfen Sie die Änderungen unter: ${reviewUrl}
+Nächste Schritte:
+1. Änderungen überprüfen: ${reviewUrl}
+2. CRM-System: ${crmUrl}
+3. Bei Konflikten textbasierte Anweisungen eingeben
+4. Upload bestätigen und Verlauf wird dokumentiert
 
 Scan-ID: ${scanResults.scanId}
+Review-ID: ${reviewId}
     `;
     
     // Sende E-Mail über bestehenden E-Mail-Service
