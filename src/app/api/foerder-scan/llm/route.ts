@@ -41,8 +41,12 @@ export async function POST(request: NextRequest) {
     let successful = 0
     let failed = 0
 
+    // For production testing, limit to first 3 programs to avoid timeout
+    const testPrograms = foerderungen.slice(0, 3)
+    console.log(`🧪 Testing with ${testPrograms.length} programs (limited for production testing)`)
+    
     // Analyze each förderung with LLM
-    for (const foerderung of foerderungen) {
+    for (const foerderung of testPrograms) {
       console.log(`🔍 Analyzing: ${foerderung.name}`)
       
       const analysisResult = await analyzeFoerderungWithLLM(
