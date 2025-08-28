@@ -4,6 +4,9 @@
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/foerder-scan/llm/route.ts": {
+      "maxDuration": 300
     }
   },
   "headers": [
