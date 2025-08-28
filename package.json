@@ -9,6 +9,10 @@
     "lint": "next lint",
     "postinstall": "npx prisma generate"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "npmrc": "legacy-peer-deps=true",
   "dependencies": {
     "@ai-sdk/openai": "^2.0.22",
     "@headlessui/react": "^2.2.7",
