@@ -22,7 +22,10 @@ import {
   UserIcon,
   ArrowRightOnRectangleIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
+  DocumentMagnifyingGlassIcon,
+  ClipboardDocumentCheckIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
 import { UserRole } from '@/lib/crm-types'
 
@@ -150,6 +153,18 @@ const navigation: NavigationItem[] = [
     icon: BellIcon,
     roles: ['admin', 'vertrieb', 'monteur'],
     badge: 3
+  },
+  {
+    name: 'Förder-Management',
+    href: '/crm/foerder-management',
+    icon: DocumentMagnifyingGlassIcon,
+    roles: ['admin'],
+    children: [
+      { name: 'Dashboard', href: '/crm/foerder-management', icon: ChartBarIcon, roles: ['admin'] },
+      { name: 'Datenbank-Verlauf', href: '/crm/foerder-management/history', icon: ClipboardDocumentListIcon, roles: ['admin'] },
+      { name: 'Änderungen freigeben', href: '/crm/foerder-management/approve', icon: ClipboardDocumentCheckIcon, roles: ['admin'] },
+      { name: 'Konflikte lösen', href: '/crm/foerder-management/conflicts', icon: ExclamationTriangleIcon, roles: ['admin'] }
+    ]
   },
   {
     name: 'Einstellungen',

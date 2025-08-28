@@ -1,0 +1,72 @@
+{
+  "timestamp": "2025-08-28T01:34:55.819Z",
+  "baseUrl": "http://localhost:3000",
+  "tests": {
+    "availability": {
+      "success": true,
+      "response": {
+        "statusCode": 200,
+        "headers": {
+          "vary": "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
+          "content-type": "application/json",
+          "date": "Thu, 28 Aug 2025 01:34:57 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5",
+          "transfer-encoding": "chunked"
+        },
+        "body": {
+          "success": true,
+          "lastScanResults": [],
+          "totalPrograms": 24,
+          "timestamp": "2025-08-28T01:34:57.878Z"
+        }
+      }
+    },
+    "execution": {
+      "success": false,
+      "error": "Invalid response structure",
+      "response": {
+        "statusCode": 200,
+        "headers": {
+          "vary": "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
+          "content-type": "application/json",
+          "date": "Thu, 28 Aug 2025 01:38:46 GMT",
+          "connection": "keep-alive",
+          "keep-alive": "timeout=5",
+          "transfer-encoding": "chunked"
+        },
+        "body": {
+          "success": true,
+          "summary": {
+            "totalScanned": 24,
+            "successful": 0,
+            "failed": 24,
+            "newEntries": 0,
+            "statusChanges": 0,
+            "contentChanges": 0,
+            "totalTokensUsed": 0,
+            "estimatedCost": 0
+          },
+          "results": [],
+          "comparisons": [],
+          "timestamp": "2025-08-28T01:38:46.812Z"
+        }
+      }
+    },
+    "errorHandling": {
+      "success": true
+    },
+    "performance": {
+      "success": true,
+      "totalDuration": 280987,
+      "programsScanned": 0,
+      "avgTimePerProgram": 0
+    }
+  },
+  "summary": {
+    "total": 4,
+    "passed": 3,
+    "failed": 1,
+    "successRate": 0.75
+  }
+}

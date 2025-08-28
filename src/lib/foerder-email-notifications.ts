@@ -21,7 +21,7 @@ interface FoerderScanResult {
 // E-Mail-Konfiguration
 const EMAIL_CONFIG = {
   from: process.env.SMTP_FROM || process.env.COMPANY_EMAIL || 'info@a4plus.eu',
-  notificationEmail: process.env.NOTIFICATION_EMAIL || 'info@a4plus.eu',
+  notificationEmail: process.env.FOERDER_REVIEW_EMAIL || process.env.NOTIFICATION_EMAIL || 's.behr@a4plus.eu',
   companyName: process.env.COMPANY_NAME || 'A4Plus',
   companyPhone: process.env.COMPANY_PHONE || '+49 (0) 123 456789',
   companyAddress: process.env.COMPANY_ADDRESS || 'Musterstraße 1, 12345 Musterstadt',
